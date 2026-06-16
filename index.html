@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChartMaster — Aprende a ler gráficos</title>
+<style>
+  :root{
+    --bg:#0E1320; --panel:#161D2E; --panel-2:#1C2438; --border:#243049;
+    --text:#E7ECF5; --muted:#8B94AB;
+    --green:#2EBD85; --red:#F6465D; --gold:#E8B33D; --gold-soft:rgba(232,179,61,.14);
+    --radius:14px;
+    --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Inter",-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;justify-content:center}
+  .app{width:100%;max-width:520px;height:100dvh;min-height:560px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+
+  /* ========== VIEWS ========== */
+  .view{position:absolute;inset:0;display:none;flex-direction:column;padding:14px 16px 0;overflow:hidden}
+  .view.active{display:flex}
+
+  /* ========== HOME ========== */
+  .home-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:6px}
+  .brand{font-weight:800;font-size:19px;letter-spacing:-.01em}
+  .brand span{color:var(--gold)}
+  .chips{display:flex;gap:8px}
+  .chip{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:99px;border:1px solid var(--border);background:var(--panel);color:var(--muted)}
+  .chip.gold{color:var(--gold);border-color:rgba(232,179,61,.3);background:var(--gold-soft)}
+  .level-line{font-size:12px;color:var(--muted);padding-bottom:10px}
+  .level-line b{color:var(--text)}
+  .lvl-bar{height:6px;background:var(--panel);border-radius:99px;margin-top:6px;overflow:hidden}
+  .lvl-bar>div{height:100%;background:linear-gradient(90deg,var(--gold),#F5CE6E);border-radius:99px}
+
+  .track{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 2px 90px}
+  .mod{
+    display:flex;gap:14px;align-items:center;background:var(--panel);border:1.5px solid var(--border);
+    border-radius:var(--radius);padding:14px;cursor:pointer;text-align:left;color:var(--text);
+    font-family:var(--sans);transition:transform .06s,border-color .15s;width:100%;
+  }
+  .mod:active{transform:scale(.985)}
+  .mod .ico{width:44px;height:44px;border-radius:12px;background:var(--panel-2);display:grid;place-items:center;font-size:21px;flex:none}
+  .mod .info{flex:1;min-width:0}
+  .mod .info h3{font-size:14.5px;margin-bottom:2px}
+  .mod .info p{font-size:12px;color:var(--muted);line-height:1.35}
+  .mod .st{font-family:var(--mono);font-size:11px;flex:none;text-align:right}
+  .mod.avail{border-color:rgba(232,179,61,.45)}
+  .mod.avail .st{color:var(--gold)}
+  .mod.done .ico{background:rgba(46,189,133,.12)}
+  .mod.done .st{color:var(--green)}
+  .mod.locked{opacity:.45;cursor:not-allowed}
+  .mod.locked .st{color:var(--muted)}
+  .exam-link{display:inline-block;margin-top:6px;font-size:11px;color:var(--gold);background:var(--gold-soft);border:1px solid rgba(232,179,61,.3);border-radius:99px;padding:3px 9px;cursor:pointer}
+  .daily-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .daily{display:flex;gap:10px;align-items:center;text-align:left;background:linear-gradient(135deg,var(--panel-2),var(--panel));border:1.5px solid rgba(232,179,61,.35);border-radius:var(--radius);padding:13px;cursor:pointer;color:var(--text);font-family:var(--sans);transition:transform .06s}
+  .daily:active{transform:scale(.98)}
+  .daily.done{opacity:.6;border-color:var(--border)}
+  .daily .di{font-size:22px;flex:none}
+  .daily h4{font-size:13px;margin-bottom:2px}
+  .daily p{font-size:11px;color:var(--muted);line-height:1.3}
+
+  /* ========== BOTTOM NAV ========== */
+  .nav{
+    position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(14,19,32,.92);
+    backdrop-filter:blur(8px);border-top:1px solid var(--border);
+    padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:15;
+  }
+  .nav button{flex:1;background:none;border:none;color:var(--muted);font-family:var(--sans);font-size:11px;cursor:pointer;display:flex;flex-direction:column;gap:3px;align-items:center}
+  .nav button .nico{font-size:20px}
+  .nav button.on{color:var(--gold)}
+
+  /* ========== LESSON ========== */
+  header.lh{display:flex;align-items:center;gap:12px;flex:none}
+  .icon-btn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none}
+  .icon-btn:hover{background:var(--panel)}
+  .progress{flex:1;height:10px;background:var(--panel);border-radius:99px;overflow:hidden}
+  .progress>div{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--gold),#F5CE6E);transition:width .45s cubic-bezier(.2,.8,.2,1)}
+  .xp-pill{font-family:var(--mono);font-size:13px;color:var(--gold);background:var(--gold-soft);padding:5px 10px;border-radius:99px;flex:none;border:1px solid rgba(232,179,61,.25)}
+  .lesson-tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 2px 10px}
+  .lesson-tag b{color:var(--text);letter-spacing:0;text-transform:none;font-size:13px;font-weight:600}
+
+  .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;flex:none;margin-bottom:10px}
+  .chart-head{display:flex;justify-content:space-between;padding:10px 14px 0;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .chart-head .sym{color:var(--text);font-weight:600}
+  canvas{display:block;width:100%;height:250px;touch-action:manipulation}
+  canvas.clickable{cursor:crosshair}
+  .hint-chip{position:absolute;top:36px;left:50%;transform:translateX(-50%);background:rgba(14,19,32,.85);border:1px solid var(--border);font-size:12px;color:var(--muted);padding:6px 12px;border-radius:99px;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
+  .hint-chip.show{opacity:1}
+
+  .question{font-size:16px;font-weight:600;line-height:1.45;padding:0 2px;flex:none}
+  .question small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:4px}
+  .options{display:flex;flex-direction:column;gap:9px;overflow-y:auto;flex:1;min-height:0;padding:10px 2px 8px}
+  .opt{
+    text-align:left;background:var(--panel);border:1.5px solid var(--border);color:var(--text);
+    border-radius:var(--radius);padding:13px 15px;font-size:14px;line-height:1.4;cursor:pointer;
+    font-family:var(--sans);transition:border-color .15s,background .15s,transform .06s;
+    display:flex;gap:12px;align-items:center;
+  }
+  .opt .key{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid var(--border);border-radius:8px;width:25px;height:25px;display:grid;place-items:center;flex:none}
+  .opt:active{transform:scale(.985)}
+  .opt.selected{border-color:var(--gold);background:var(--gold-soft)}
+  .opt.selected .key{border-color:var(--gold);color:var(--gold)}
+  .opt.correct{border-color:var(--green);background:rgba(46,189,133,.12)}
+  .opt.wrong{border-color:var(--red);background:rgba(246,70,93,.10)}
+  .opt:disabled{cursor:default;opacity:1}
+
+  .cta{
+    flex:none;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:700;
+    font-family:var(--sans);cursor:pointer;background:var(--gold);color:#1A1405;
+    transition:opacity .2s,transform .06s;margin-bottom:calc(14px + env(safe-area-inset-bottom));
+  }
+  .cta:disabled{background:var(--panel-2);color:var(--muted);cursor:not-allowed}
+  .cta:active:not(:disabled){transform:scale(.985)}
+  .cta:focus-visible,.opt:focus-visible,.mod:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* ========== FEEDBACK SHEET ========== */
+  .sheet{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.9,.25,1);z-index:40}
+  .sheet.show{transform:translateY(0)}
+  .sheet-inner{width:100%;max-width:520px;margin:0 16px;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));border:1px solid var(--border);border-bottom:none}
+  .sheet-inner.ok{background:#10241D;border-color:rgba(46,189,133,.4)}
+  .sheet-inner.bad{background:#2A1419;border-color:rgba(246,70,93,.4)}
+  .sheet-title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;margin-bottom:6px}
+  .sheet-title .badge{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex:none}
+  .ok .sheet-title{color:var(--green)}.ok .badge{background:var(--green);color:#06140E}
+  .bad .sheet-title{color:var(--red)}.bad .badge{background:var(--red);color:#1E0509}
+  .sheet-body{font-size:13.5px;line-height:1.55;opacity:.92;margin-bottom:12px}
+  .sheet-xp{font-family:var(--mono);font-size:12px;color:var(--gold);margin-bottom:14px}
+  /* --- Aprofundar (fonte/citação no feedback) --- */
+  .deepen{margin-bottom:14px}
+  .deepen-toggle{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s}
+  .deepen-toggle:hover{background:rgba(255,255,255,.09)}
+  .deepen-toggle.open{border-color:var(--gold);color:var(--gold)}
+  .deepen-body{margin-top:10px;padding:12px;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;font-size:12.5px;line-height:1.55}
+  .deepen-body .cite{color:var(--muted);margin-bottom:10px}
+  .deepen-body .cite b{color:var(--text)}
+  .deepen-body .cite span{display:block;margin-top:4px;font-style:italic;color:var(--text);opacity:.85}
+  .deepen-body .deep-link{display:inline-flex;align-items:center;gap:6px;color:var(--gold);text-decoration:none;font-weight:600;border:1px solid rgba(232,179,61,.35);background:var(--gold-soft);border-radius:99px;padding:7px 12px}
+  .deepen-body .deep-link:hover{text-decoration:underline}
+  /* --- Cartão continuar lição (memória) --- */
+  .resume{display:flex;gap:12px;align-items:center;text-align:left;width:100%;cursor:pointer;
+    background:linear-gradient(135deg,rgba(46,189,133,.16),var(--panel));border:1.5px solid rgba(46,189,133,.45);
+    border-radius:var(--radius);padding:14px;color:var(--text);font-family:var(--sans);transition:transform .06s}
+  .resume:active{transform:scale(.985)}
+  .resume .ri{font-size:24px;flex:none}
+  .resume .rinfo{flex:1;min-width:0}
+  .resume h4{font-size:14px;margin-bottom:2px}
+  .resume p{font-size:12px;color:var(--muted);margin-bottom:7px}
+  .resume .rbar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+  .resume .rbar>div{height:100%;background:var(--green);border-radius:99px}
+  .sheet .cta{width:100%;margin-bottom:0}
+  .ok .cta{background:var(--green);color:#06140E}
+  .bad .cta{background:var(--red);color:#FFF}
+
+  /* ========== RESULT ========== */
+  .result{position:absolute;inset:0;background:var(--bg);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center}
+  .result.show{display:flex}
+  .ring{position:relative;width:140px;height:140px;margin-bottom:6px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .val{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:28px;font-weight:700}
+  .result h2{font-size:21px}
+  .result p{color:var(--muted);font-size:13.5px;max-width:310px;line-height:1.5}
+  .result .stats{display:flex;gap:12px;margin:12px 0 4px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px 18px;min-width:92px}
+  .stat b{display:block;font-family:var(--mono);font-size:17px;color:var(--gold)}
+  .stat span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .result .cta{width:100%;max-width:300px;margin-top:10px;margin-bottom:0}
+  .new-badge{font-size:13px;color:var(--gold);background:var(--gold-soft);border:1px solid rgba(232,179,61,.3);border-radius:99px;padding:6px 14px;margin-top:4px}
+
+  /* ========== DASHBOARD ========== */
+  .dash{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:6px 2px 90px}
+  .dash h2{font-size:17px}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dcard{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+  .dcard b{display:block;font-family:var(--mono);font-size:22px;color:var(--gold);margin-bottom:2px}
+  .dcard span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+  .sect{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+  .cbar{display:flex;align-items:center;gap:10px;font-size:12.5px}
+  .cbar .nm{width:118px;flex:none;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cbar .tr{flex:1;height:8px;background:var(--panel);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+  .cbar .tr>div{height:100%;border-radius:99px}
+  .cbar .pc{width:38px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .badges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .bdg{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px 8px;text-align:center}
+  .bdg .bi{font-size:24px;display:block;margin-bottom:4px}
+  .bdg .bn{font-size:10.5px;color:var(--muted);line-height:1.3}
+  .sync{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+  .sync-note{font-size:12px;color:var(--muted);line-height:1.5}
+  .sync-note b{color:var(--text)}
+  .sync-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sync-btn{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+  .sync-btn:hover{background:rgba(255,255,255,.07)}
+  .sync-box{width:100%;min-height:64px;resize:vertical;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;line-height:1.4}
+  .sync-box:focus{outline:none;border-color:var(--gold)}
+  .sync-apply{background:var(--green);color:#06140E;border:none;border-radius:10px;padding:11px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer}
+  .bdg.earned{border-color:rgba(232,179,61,.4);background:var(--gold-soft)}
+  .bdg.earned .bn{color:var(--text)}
+  .bdg:not(.earned){opacity:.4;filter:grayscale(1)}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px;background:var(--panel);border-radius:var(--radius);border:1px dashed var(--border)}
+
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ HOME / TRILHA ============ -->
+  <div class="view active" id="vHome">
+    <div class="home-head">
+      <div class="brand">Chart<span>Master</span></div>
+      <div class="chips">
+        <div class="chip">🔥 <span id="hStreak">1</span></div>
+        <div class="chip gold" id="hXp">0 XP</div>
+      </div>
+    </div>
+    <div class="level-line">
+      Nível <b id="hLvl">1</b> · <b id="hTitle">Aprendiz</b>
+      <div class="lvl-bar"><div id="hLvlBar" style="width:0%"></div></div>
+    </div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="view" id="vDash">
+    <div class="home-head"><div class="brand">Painel</div>
+      <div class="chips"><div class="chip gold" id="dXpChip">0 XP</div></div>
+    </div>
+    <div class="dash" id="dash"></div>
+  </div>
+
+  <!-- ============ LESSON ============ -->
+  <div class="view" id="vLesson">
+    <header class="lh">
+      <button class="icon-btn" id="quitBtn" aria-label="Sair da lição">✕</button>
+      <div class="progress"><div id="bar"></div></div>
+      <div class="xp-pill" id="xpPill">+0 XP</div>
+    </header>
+    <div class="lesson-tag" id="lessonTag"></div>
+    <div class="chart-card" id="chartCard">
+      <div class="chart-head"><span class="sym" id="chartSym"></span><span id="chartPx"></span></div>
+      <canvas id="chart" height="250"></canvas>
+      <div class="hint-chip" id="hint">Toca diretamente no gráfico</div>
+    </div>
+    <div class="question" id="qText"></div>
+    <div class="options" id="opts"></div>
+    <button class="cta" id="cta" disabled>Conferir</button>
+
+    <!-- Result overlay -->
+    <div class="result" id="result">
+      <div class="ring">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="60" fill="none" stroke="#243049" stroke-width="10"/>
+          <circle id="ringFg" cx="70" cy="70" r="60" fill="none" stroke="#2EBD85" stroke-width="10" stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="377"/>
+        </svg>
+        <div class="val" id="ringVal" style="color:var(--green)">0%</div>
+      </div>
+      <h2 id="rTitle">Lição concluída!</h2>
+      <p id="rMsg"></p>
+      <div class="stats">
+        <div class="stat"><b id="rXp">0</b><span>XP ganho</span></div>
+        <div class="stat"><b id="rAcc">0/0</b><span>Acertos</span></div>
+      </div>
+      <div class="new-badge" id="newBadge" style="display:none"></div>
+      <button class="cta" id="rBack">Voltar à trilha</button>
+    </div>
+  </div>
+
+  <!-- ============ FEEDBACK SHEET ============ -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-inner" id="sheetInner">
+      <div class="sheet-title"><span class="badge" id="sBadge">✓</span><span id="sTitle"></span></div>
+      <div class="sheet-body" id="sBody"></div>
+      <div class="sheet-xp" id="sXp"></div>
+      <div class="deepen" id="deepen"></div>
+      <button class="cta" id="sNext">Continuar</button>
+    </div>
+  </div>
+
+  <!-- ============ NAV ============ -->
+  <div class="nav" id="nav">
+    <button class="on" data-v="vHome"><span class="nico">🗺️</span>Trilha</button>
+    <button data-v="vDash"><span class="nico">📊</span>Painel</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CENÁRIOS DE GRÁFICO — curados e anotados (expandido)
+   ============================================================ */
+function fromCloses(closes, firstOpen){
+  return closes.map((c,i)=>{
+    const o = i===0 ? firstOpen : closes[i-1];
+    const h = Math.max(o,c) + 6 + (i*7)%16;
+    const l = Math.min(o,c) - 6 - (i*11)%14;
+    return {o,c,h,l};
+  });
+}
+// S1 — XAUUSD 4h: alta → topo → BOS de baixa
+const s1 = fromCloses([4350,4380,4360,4400,4390,4430,4410,4460,4440,4480,4530,4510,4570,4620,4590,4660,4700,4680,4740,4790,4730,4680,4665,4720,4790,4850,4900,4880,4860,4800,4750,4700,4640,4580,4560,4600,4640,4620,4655,4610,4570,4540,4560,4520,4490,4530,4510,4550],4330);
+s1[26].h+=26; s1[0].l-=40;
+// S2 — baixa → liquidez (equal lows) → CHOCH de alta
+const s2 = fromCloses([4800,4760,4780,4720,4690,4710,4650,4600,4630,4560,4520,4480,4500,4440,4410,4430,4400,4420,4405,4400,4380,4440,4500,4560,4530,4600,4650,4620,4680,4720],4820);
+s2[20].l-=14;
+// S3 — consolidação (range)
+const s3 = fromCloses([4600,4630,4610,4650,4620,4590,4560,4585,4615,4645,4630,4600,4570,4555,4580,4620,4640,4625,4595,4565,4575,4605,4635,4615],4590);
+// S4 — anatomia das velas
+const s4 = [{o:100,c:102,h:103.2,l:99},{o:102,c:101,h:103,l:100},{o:101,c:103,h:104,l:100.4},{o:103,c:109,h:109.6,l:102.7},{o:109,c:108,h:110,l:107.2},{o:108,c:108.6,h:109.4,l:107.4},{o:108.6,c:108.7,h:110.4,l:106.8},{o:108.7,c:107.2,h:109.2,l:106.3},{o:107.2,c:107.9,h:108.3,l:102.4},{o:107.9,c:109,h:109.7,l:107.1},{o:109,c:110,h:110.9,l:108.4}];
+// S5 — Ombro-Cabeça-Ombro (topo de reversão)
+const s5 = fromCloses([100,108,104,116,110,120,113,128,118,121,114,119,112,118,108,104,98,102,94,90],98);
+// S6 — Topo Duplo "M"
+const s6 = fromCloses([100,112,124,120,126,118,108,114,124,121,126,116,106,100,96],98);
+// S7 — Gap de fuga (runaway) numa tendência de alta
+const s7 = fromCloses([100,104,108,106,110,114,112,128,132,130,136,140,138,144,148],98);
+s7[7].l = s7[6].h + 6; // gap visível entre idx6 e idx7
+// S8 — Spike and Channel (Brooks): subida explosiva + canal
+const s8 = fromCloses([100,118,134,148,150,156,153,160,158,164,161,168,165,172,169,176],98);
+// S9 — Order block + FVG (recuo e mitigação)
+const s9 = fromCloses([100,98,96,108,120,118,124,116,112,114,120,128,126,132],100);
+// S10 — Premium/Discount (impulso para projetar 50%)
+const s10 = fromCloses([100,106,112,118,126,134,130,124,118,126,120,128,136,142],98);
+// S11 — Pin bar / reversal bar num suporte
+const s11 = fromCloses([130,124,118,112,106,100,108,114,112,118,116,122,126,124,130],132);
+s11[5].l -= 18; // pavio de rejeição longo no fundo
+
+/* ===== CENÁRIOS DO CAPÍTULO "DOMINAR O ROMPIMENTO DA MACRO" ===== */
+// Helper para velas explícitas {o,h,l,c}
+function K(o,h,l,c){ return {o,h,l,c}; }
+
+// B1 — Tendência de baixa: BOS de baixa confirmado (fecho abaixo do último fundo)
+// Estrutura: LH, LL, LH(fundo protegido em 92), depois vela de displacement fecha abaixo
+const b1 = [
+  K(100,104,98,103), K(103,108,101,106), K(106,109,99,100),   // topo inicial + recuo
+  K(100,102,90,92),  K(92,98,91,97),  K(97,101,95,99),         // fundo 90/92 (swing low) + pullback
+  K(99,103,97,98),   K(98,100,88,89),  // idx7: AGENTE — vela vermelha grande fecha em 89 (abaixo de 90)
+  K(89,92,84,85), K(85,88,82,86), K(86,90,85,88)               // continuação da baixa
+];
+// B2 — Tendência de alta: BOS de alta confirmado (fecho acima do último topo)
+const b2 = [
+  K(100,103,97,98), K(98,101,94,96), K(96,106,95,105),         // recuo + topo em 106 (swing high)
+  K(105,107,101,102), K(102,105,100,104), K(104,106,102,103),  // pullback (fundo protegido)
+  K(103,116,103,115), // idx6: AGENTE — vela verde grande fecha em 115 (acima de 106)
+  K(115,118,113,117), K(117,121,116,120), K(120,123,118,122)   // continuação da alta
+];
+// B3 — ARMADILHA: pavio fura o fundo mas FECHA acima (liquidity sweep, NÃO é BOS)
+const b3 = [
+  K(100,103,96,98), K(98,101,93,95), K(95,99,90,92),           // descida até swing low ~90
+  K(92,95,89,93), K(93,96,91,94), K(94,97,92,95),              // fundo protegido ~89/90
+  K(95,97,82,96),  // idx6: pavio fura até 82 mas FECHA em 96 (acima) -> SWEEP, não rompimento
+  K(96,103,95,102), K(102,106,100,105), K(105,108,103,107)     // reverte para cima
+];
+// B4 — Alta com vários topos: identificar o ÚLTIMO topo antes do rompimento
+const b4 = [
+  K(100,104,98,103), K(103,107,101,106), K(106,108,102,104),
+  K(104,110,103,109), K(109,111,106,107), K(107,113,106,112),  // topo mais recente ~113 (idx5)
+  K(112,114,109,110), K(110,112,108,111), // pullback
+  K(111,120,111,119), // idx8: AGENTE rompe acima de 113
+  K(119,122,117,121)
+];
+// B5 — Sequência completa: expansão → retração → BOS
+const b5 = [
+  K(120,122,114,115), K(115,117,108,109), K(109,112,107,111),  // queda inicial (expansão)
+  K(111,116,110,115), K(115,118,113,114), // retração para cima (pullback)
+  K(114,116,104,105), // idx5: AGENTE — fecha abaixo do fundo anterior (107)
+  K(105,108,100,101), K(101,104,98,103), K(103,106,99,100)
+];
+
+const SCENARIOS = {
+  s1:{sym:'XAUUSD · 4h', px:'4.550,2', pxColor:'#F6465D', candles:s1},
+  s2:{sym:'XAUUSD · 1h', px:'4.720,0', pxColor:'#2EBD85', candles:s2},
+  s3:{sym:'XAUUSD · 1h', px:'4.615,0', pxColor:'#8B94AB', candles:s3},
+  s4:{sym:'Exemplo didático', px:'', pxColor:'#8B94AB', candles:s4},
+  s5:{sym:'DAX · 1D', px:'90,0', pxColor:'#F6465D', candles:s5},
+  s6:{sym:'EURUSD · 4h', px:'96,0', pxColor:'#F6465D', candles:s6},
+  s7:{sym:'XAUUSD · 1h', px:'148,0', pxColor:'#2EBD85', candles:s7},
+  s8:{sym:'US100 · 15m', px:'176,0', pxColor:'#2EBD85', candles:s8},
+  s9:{sym:'GBPUSD · 1h', px:'132,0', pxColor:'#2EBD85', candles:s9},
+  s10:{sym:'XAUUSD · 4h', px:'142,0', pxColor:'#2EBD85', candles:s10},
+  s11:{sym:'EURUSD · 1D', px:'130,0', pxColor:'#2EBD85', candles:s11},
+  b1:{sym:'XAUUSD · 4h', px:'88,0', pxColor:'#F6465D', candles:b1},
+  b2:{sym:'EURUSD · 4h', px:'122,0', pxColor:'#2EBD85', candles:b2},
+  b3:{sym:'GBPUSD · 1h', px:'107,0', pxColor:'#2EBD85', candles:b3},
+  b4:{sym:'US100 · 1h', px:'121,0', pxColor:'#2EBD85', candles:b4},
+  b5:{sym:'XAUUSD · 1h', px:'100,0', pxColor:'#F6465D', candles:b5}
+};
+
+/* ============================================================
+   CURRÍCULO PROFISSIONAL — 12 níveis
+   q:{type, c, prompt, sub?, options?, answer?, scenario?, zone?, reveal?, ok, bad}
+   tipos: mc | tf | trend | click
+   ============================================================ */
+const TF = ['✅ Verdadeiro','❌ Falso'];
+const TREND = ['📈 Tendência de alta','📉 Tendência de baixa','↔️ Consolidação (range)'];
+
+const MODULES = [
+/* ===================== NÍVEL 1 — FUNDAMENTOS DO FOREX ===================== */
+{ id:'n1', icon:'🌍', title:'N1 · Fundamentos do Forex', desc:'Mercado, participantes, sessões, correlação e fundamentais', questions:[
+  {type:'mc', c:'forex', prompt:'O que é o mercado <b>Forex</b>?', options:['O mercado global de troca de moedas','Uma bolsa só de ações dos EUA','Um banco central internacional','Uma app de pagamentos'], answer:0,
+   ok:'Forex (Foreign Exchange) é o mercado onde se trocam moedas — o maior mercado financeiro do mundo, movendo trilhões por dia.',
+   bad:'Forex = Foreign Exchange: o mercado global de troca de moedas, o maior do mundo em volume.'},
+  {type:'tf', c:'forex', prompt:'O Forex funciona 24 horas por dia nos dias úteis.', options:TF, answer:0,
+   ok:'Verdadeiro! As sessões de Sydney, Tóquio, Londres e Nova Iorque revezam-se, mantendo o mercado aberto 24h de seg. a sex.',
+   bad:'É verdadeiro: as quatro grandes sessões revezam-se e o mercado roda 24h nos dias úteis.'},
+  {type:'mc', c:'broker', prompt:'Qual é o papel de um <b>broker</b>?', options:['Intermediar o teu acesso ao mercado','Garantir lucro','Emitir moeda','Regular os bancos'], answer:0,
+   ok:'O broker é a ponte entre ti e o mercado: executa as tuas ordens. Nunca garante lucro.',
+   bad:'O broker apenas dá acesso ao mercado e executa ordens — não garante resultados.'},
+  {type:'mc', c:'sessões', prompt:'Qual período costuma ter <b>maior liquidez</b>?', options:['Sobreposição Londres + Nova Iorque','Madrugada de domingo','Fecho de Sydney','Só Tóquio aberta'], answer:0,
+   ok:'A sobreposição Londres + NY junta as duas maiores praças ao mesmo tempo — maior volume e movimento do dia.',
+   bad:'É a sobreposição Londres + Nova Iorque: as duas maiores praças abertas juntas concentram o maior volume.'},
+  {type:'mc', c:'liquidez', prompt:'O que é <b>liquidez</b>?', options:['Facilidade de negociar sem mover muito o preço','Dinheiro na tua conta','Velocidade da internet','Lucro garantido'], answer:0,
+   ok:'Alta liquidez = muitos compradores e vendedores = entras/saís facilmente e com spreads menores.',
+   bad:'Liquidez é a facilidade de negociar: com muitos participantes, o preço quase não distorce ao negociares.'},
+  {type:'mc', c:'pares', prompt:'No par <b>EURUSD</b>, qual é a moeda base?', options:['EUR (a primeira)','USD (a segunda)','Ambas','Nenhuma'], answer:0,
+   ok:'A primeira moeda do par é sempre a base; a segunda é a cotada.',
+   bad:'A moeda base é a primeira do par: em EURUSD é o EUR.'},
+  {type:'mc', c:'correlação', prompt:'EURUSD e GBPUSD têm correlação tipicamente…', options:['Positiva (movem-se juntos)','Negativa (movem-se ao contrário)','Nula','Aleatória'], answer:0,
+   ok:'Ambos são "moeda europeia contra dólar", por isso tendem a subir e cair juntos — correlação positiva.',
+   bad:'Correlação positiva: como ambos têm o USD como cotada e bases europeias, andam juntos.'},
+  {type:'mc', c:'correlação', prompt:'EURUSD e USDCHF tendem a mover-se…', options:['Em direções opostas (correlação negativa)','Sempre juntos','Sem relação','Igual ao ouro'], answer:0,
+   ok:'O USD está em lados opostos dos pares (cotada num, base no outro), logo eles costumam espelhar-se — correlação negativa.',
+   bad:'Correlação negativa: o dólar ocupa posições opostas nos dois pares, então tendem a mover-se ao contrário.'},
+  {type:'mc', c:'fundamentais', prompt:'Qual destes dados move <b>fortemente</b> uma moeda quando é publicado?', options:['Decisão de taxa de juro do banco central','O feriado nacional','A cor da bandeira','O número de bancos'], answer:0,
+   ok:'Decisões de juro e dados como emprego (NFP) e inflação (CPI) são os maiores motores fundamentais de uma moeda.',
+   bad:'São as decisões de taxa de juro (e dados como emprego e inflação) que mais movem uma moeda.'},
+  {type:'mc', c:'fundamentais', prompt:'Se um banco central <b>sobe os juros</b>, a sua moeda tende a…', options:['Fortalecer-se','Enfraquecer-se','Ficar igual','Desaparecer'], answer:0,
+   ok:'Juros mais altos atraem capital à procura de rendimento — a moeda tende a valorizar-se.',
+   bad:'Tende a fortalecer-se: juros mais altos atraem investimento e valorizam a moeda.'},
+  {type:'mc', c:'fundamentais', prompt:'O ouro (XAU) costuma ser procurado quando há…', options:['Medo e incerteza no mercado','Euforia total','Feriados','Juros altíssimos'], answer:0,
+   ok:'O ouro é um ativo de refúgio: em tempos de medo, investidores procuram-no, e ele tende a subir.',
+   bad:'Em tempos de medo/incerteza: o ouro é refúgio e costuma valorizar quando o risco aumenta.'},
+  {type:'mc', c:'fundamentais', prompt:'Preços do petróleo a subir tendem a beneficiar qual moeda?', options:['CAD (Canadá, exportador de petróleo)','JPY','CHF','EUR'], answer:0,
+   ok:'O Canadá exporta petróleo, por isso o CAD costuma fortalecer-se quando o petróleo sobe — commodity como indicador antecipado.',
+   bad:'O CAD: o Canadá é grande exportador de petróleo, logo a sua moeda acompanha a subida do crude.'}
+]},
+
+/* ===================== NÍVEL 2 — LEITURA DE GRÁFICOS ===================== */
+{ id:'n2', icon:'🕯️', title:'N2 · Leitura de Gráficos', desc:'Velas, anatomia, fecho da barra, tipos de gráfico e timeframes', questions:[
+  {type:'mc', c:'velas', prompt:'O <b>corpo</b> da vela representa…', options:['Abertura e fechamento','Máxima e mínima','Volume','Hora do dia'], answer:0,
+   ok:'Corpo = abertura→fechamento. Os pavios marcam os extremos (máxima e mínima).',
+   bad:'O corpo vai da abertura ao fechamento; os pavios mostram máxima e mínima.'},
+  {type:'mc', c:'velas', prompt:'Uma vela <b>verde</b> significa que…', options:['Fechou acima da abertura','Fechou abaixo da abertura','Foi feriado','Houve mais vendedores'], answer:0,
+   ok:'Verde (alta): fechou acima de onde abriu. Vermelha (baixa): fechou abaixo.',
+   bad:'Verde = fechamento acima da abertura (compradores venceram o período).'},
+  {type:'click', c:'rejeição', scenario:'s4', prompt:'Toca na vela de <b>rejeição</b>.', sub:'Pavio inferior longo — o preço caiu mas foi devolvido.', zone:{i1:8,i2:8,p1:102,p2:108.6}, reveal:{label:'rejeição'},
+   ok:'O pavio inferior longo mostra venda rejeitada: os compradores devolveram o preço para cima.',
+   bad:'É a vela do pavio inferior longo (destacada): caiu e foi rejeitada, fechando perto do topo.'},
+  {type:'click', c:'indecisão', scenario:'s4', prompt:'Toca na vela de <b>indecisão</b> (doji).', sub:'Corpo minúsculo, pavios dos dois lados.', zone:{i1:6,i2:6,p1:106.5,p2:110.6}, reveal:{label:'doji'},
+   ok:'Abertura ≈ fechamento com pavios dos dois lados = equilíbrio entre compradores e vendedores.',
+   bad:'É o doji (destacado): corpo quase inexistente, ninguém venceu o período.'},
+  {type:'click', c:'impulso', scenario:'s4', prompt:'Toca na vela de <b>impulso</b> (trend bar forte).', sub:'Corpo grande, pavios pequenos.', zone:{i1:3,i2:3,p1:102.5,p2:109.8}, reveal:{label:'impulso (trend bar)'},
+   ok:'Corpo grande e pavios curtos = um lado dominou. É o tipo de vela que costuma ser o agente de rompimentos.',
+   bad:'É a vela verde grande (destacada): corpo longo, quase sem pavios — domínio total dos compradores.'},
+  {type:'mc', c:'trend bar', prompt:'Na terminologia de price action, uma <b>trend bar</b> é uma vela com…', options:['Corpo grande na direção do movimento','Corpo minúsculo','Só pavios','Sem fechamento'], answer:0,
+   ok:'Trend bar = vela de corpo forte que mostra convicção direcional. O oposto é o doji (indecisão).',
+   bad:'Trend bar é a vela de corpo grande e direcional — sinal de força. O contrário é o doji.'},
+  {type:'mc', c:'fecho da barra', prompt:'Por que o <b>fecho</b> da vela é tão importante?', options:['Só o fecho confirma um rompimento','A cor é o que importa','O pavio é que decide','O fecho não importa'], answer:0,
+   ok:'Exato — e isto liga-se ao "agente do rompimento" da tua mentoria: um pavio que fura um nível não confirma; só o fechamento além dele confirma.',
+   bad:'É o fecho que confirma: um pavio pode furar um nível e voltar, mas só o fechamento além dele valida o rompimento.'},
+  {type:'tf', c:'fecho da barra', prompt:'Um pavio que ultrapassa um nível já confirma o rompimento, mesmo sem o fecho passar.', options:TF, answer:1,
+   ok:'Falso! Pavio não confirma nada. O nível só é rompido quando uma vela FECHA além dele.',
+   bad:'É falso: pavios podem furar e voltar (são até armadilhas). Só o fechamento confirma o rompimento.'},
+  {type:'mc', c:'tipos de gráfico', prompt:'Qual tipo de gráfico mostra abertura, máxima, mínima e fecho de cada período?', options:['Candlestick (velas)','Linha','Apenas pontos','Histograma'], answer:0,
+   ok:'O candlestick mostra os 4 preços (OHLC). O gráfico de linha só liga os fechamentos.',
+   bad:'É o candlestick: mostra abertura, máxima, mínima e fecho. A linha só usa o fechamento.'},
+  {type:'mc', c:'tipos de gráfico', prompt:'O gráfico de <b>linha</b> é construído ligando…', options:['Os preços de fecho','As máximas','As aberturas','Os volumes'], answer:0,
+   ok:'A linha liga os fechamentos — é limpo para ver a tendência geral, mas esconde os pavios e o detalhe.',
+   bad:'O gráfico de linha liga os preços de fecho de cada período; é simples mas perde detalhe.'},
+  {type:'mc', c:'timeframe', prompt:'Ao mudar de <b>4h para 1h</b>, o que muda?', options:['Cada vela passa a resumir 1 hora','O par muda','Os preços mudam','O gráfico inverte'], answer:0,
+   ok:'O timeframe define quanto tempo cada vela resume. 1h = uma vela por hora. O preço é o mesmo; muda o "zoom".',
+   bad:'Muda o tempo de cada vela: em 1h cada vela resume 1 hora. É só uma questão de "zoom" no mesmo mercado.'},
+  {type:'mc', c:'timeframe', prompt:'Timeframes <b>maiores</b> (1D, 4h) servem sobretudo para…', options:['Ver a direção e o contexto geral','Entradas de precisão ao segundo','Calcular spread','Mudar de broker'], answer:0,
+   ok:'O TF maior dá o contexto (para onde o mercado vai); os menores servem para afinar a entrada. Isto é a base do multi-timeframe.',
+   bad:'TFs maiores mostram a direção/contexto; os menores afinam a entrada. Lê-se sempre do maior para o menor.'}
+]},
+
+/* ===================== NÍVEL 3 — PRICE ACTION ===================== */
+{ id:'n3', icon:'📈', title:'N3 · Price Action', desc:'Dow, suportes, tendências, gaps, pullbacks, reversões e climax', questions:[
+  {type:'mc', c:'teoria de dow', prompt:'Segundo a <b>Teoria de Dow</b>, o mercado tem quantas tendências simultâneas?', options:['Três (primária, secundária, terciária)','Uma só','Duas','Cinco'], answer:0,
+   ok:'Dow descreve três: a primária (longa, a "maré"), a secundária (correções, as "ondas") e a terciária (ruído, as "marolas").',
+   bad:'São três: primária (longa), secundária (correções) e terciária (ruído de curto prazo). É a base da leitura de tendências.'},
+  {type:'mc', c:'teoria de dow', prompt:'Uma premissa central de Dow é que…', options:['O preço desconta toda a informação disponível','O preço é aleatório','Só os fundamentais importam','Os gráficos não servem'], answer:0,
+   ok:'Para Dow, tudo o que se sabe já está refletido no preço — por isso estudamos o gráfico, não o motivo de cada movimento.',
+   bad:'A premissa é que "o preço desconta tudo": toda a informação já está no gráfico. Daí estudarmos o preço.'},
+  {type:'mc', c:'suporte/resistência', prompt:'Um <b>suporte</b> é uma zona onde…', options:['A procura tende a travar a queda','A oferta trava a subida','O mercado fecha','O spread some'], answer:0,
+   ok:'Suporte = "chão" onde compradores costumam aparecer. Resistência = "teto" onde aparecem vendedores.',
+   bad:'Suporte é o chão onde a procura trava a queda; resistência é o teto onde a oferta trava a subida.'},
+  {type:'tf', c:'suporte/resistência', prompt:'Quando um suporte é rompido, ele pode passar a funcionar como resistência.', options:TF, answer:0,
+   ok:'Verdadeiro! É a inversão de papéis (polaridade): o antigo chão vira teto quando testado por baixo.',
+   bad:'É verdadeiro: suporte rompido vira resistência (e vice-versa) — chama-se inversão de polaridade.'},
+  {type:'click', c:'tendência', scenario:'s1', prompt:'Qual é a tendência <b>atual</b> deste gráfico?', sub:'Quem manda é o último rompimento.', options:TREND, answer:1, type:'trend',
+   ok:'Após o topo (~4.900), o mercado rompeu o último fundo e passou a fazer fundos mais baixos — baixa.',
+   bad:'É baixa: depois do topo, rompeu o fundo de 4.665 e passou a fazer fundos cada vez mais baixos.'},
+  {type:'trend', c:'consolidação', scenario:'s3', prompt:'E aqui, qual é a situação do mercado?', sub:'Há rompimento ou o preço respeita teto e chão?', options:TREND, answer:2,
+   ok:'É consolidação (range): o preço oscila entre ~4.555 e ~4.650 sem romper. Sem rompimento, não há tendência.',
+   bad:'É consolidação: o preço bate num teto e num chão repetidamente, sem romper nenhum.'},
+  {type:'mc', c:'gaps', prompt:'Um <b>gap de exaustão</b> costuma aparecer…', options:['No fim de uma tendência, sinalizando fôlego final','No início de tudo','Em mercados parados','Sempre que abre Londres'], answer:0,
+   ok:'O gap de exaustão surge perto do fim do movimento — é o "último suspiro" antes de uma possível reversão.',
+   bad:'Aparece no fim da tendência: é o salto final de exaustão, muitas vezes seguido de reversão.'},
+  {type:'click', c:'gaps', scenario:'s7', prompt:'Toca no <b>gap</b> (salto de preço entre duas velas).', sub:'Procura o "buraco" onde não houve negociação.', zone:{i1:6,i2:7,p1:112,p2:130}, reveal:{label:'gap de fuga'},
+   ok:'O gap é o vazio entre o fecho de uma vela e a abertura da seguinte. Aqui, um gap de fuga confirma a força da tendência.',
+   bad:'O gap está na zona destacada: o preço saltou sem negociar no meio — sinal de força (gap de fuga).'},
+  {type:'mc', c:'pullback', prompt:'Um <b>pullback</b> é…', options:['Recuo temporário contra a tendência','Fim definitivo da tendência','Um tipo de ordem','Uma vela de indecisão'], answer:0,
+   ok:'O mercado expande, recua (pullback) e continua. O recuo é uma pausa, não uma reversão.',
+   bad:'Pullback é o recuo temporário contra a direção principal — uma pausa antes da continuação.'},
+  {type:'click', c:'pullback', scenario:'s1', prompt:'Toca na <b>retração</b> que ocorreu depois da queda.', sub:'O recuo para cima antes de o preço continuar a cair.', zone:{i1:35,i2:39,p1:4555,p2:4685}, reveal:{label:'retração'},
+   ok:'Após a queda forte, o preço "respirou" para cima (~4.655) antes de retomar a baixa — pullback clássico.',
+   bad:'A retração é a subida destacada: o mercado recuou antes de continuar a cair.'},
+  {type:'mc', c:'reversão', prompt:'Qual é a diferença entre <b>pullback</b> e <b>reversão</b>?', options:['Pullback é pausa; reversão muda a tendência','São a mesma coisa','Reversão é mais curta','Pullback só ocorre na alta'], answer:0,
+   ok:'Pullback respeita a estrutura e continua; reversão quebra a estrutura e inverte a direção (é onde entra o CHOCH).',
+   bad:'Pullback é pausa temporária; reversão quebra a estrutura e inverte a tendência.'},
+  {type:'mc', c:'climax', prompt:'Um <b>climax</b> (clímax de compra/venda) é…', options:['Um movimento que foi longe demais, rápido demais','Um mercado parado','Uma vela de indecisão','Um indicador'], answer:0,
+   ok:'Climax = exagero de força que esgota um lado. Costuma anteceder uma pausa (range) ou reversão.',
+   bad:'Climax é um movimento exagerado e veloz que esgota um lado — geralmente seguido de pausa ou reversão.'},
+  {type:'tf', c:'reversão', prompt:'Toda quebra de tendência é confirmada na primeira vela contrária.', options:TF, answer:1,
+   ok:'Falso! Uma vela contrária pode ser só um pullback. A reversão precisa de quebra estrutural confirmada (fecho além do nível).',
+   bad:'É falso: uma vela contrária pode ser apenas pullback. Reversão exige quebra de estrutura confirmada pelo fecho.'}
+]},
+
+/* ===================== NÍVEL 4 — ESTRUTURA DE MERCADO ===================== */
+{ id:'n4', icon:'🏗️', title:'N4 · Estrutura de Mercado', desc:'Swings, macro/micro, BOS, CHOCH, agente e measured move', questions:[
+  {type:'mc', c:'macro', prompt:'A <b>macro estrutura</b> define…', options:['A direção principal do mercado','A cor das velas','O horário de Londres','O spread'], answer:0,
+   ok:'A macro é o mapa: para onde o mercado vai. A micro são os detalhes do caminho.',
+   bad:'A macro (topos mais altos e fundos mais baixos) define a direção principal — lê-se sempre primeiro.'},
+  {type:'mc', c:'swing', prompt:'O que é um <b>Swing High</b>?', options:['Um topo relevante da estrutura','Qualquer vela verde','Um indicador','O preço de abertura'], answer:0,
+   ok:'Swing High = topo importante; Swing Low = fundo importante. São os "ossos" da estrutura.',
+   bad:'Swing High é um topo relevante (e Swing Low, um fundo relevante) — definem a estrutura.'},
+  {type:'click', c:'topo/fundo', scenario:'s1', prompt:'Toca no <b>topo mais alto</b> (topo macro).', zone:{i1:25,i2:27,p1:4830,p2:4940}, reveal:{label:'topo macro'},
+   ok:'~4.900 — o ponto mais alto visível, o teto da macro estrutura.',
+   bad:'O topo macro está na zona destacada (~4.900): o ponto máximo de todo o gráfico.'},
+  {type:'click', c:'topo/fundo', scenario:'s1', prompt:'Toca no <b>fundo mais baixo</b> (fundo macro).', sub:'A base da macro estrutura.', zone:{i1:0,i2:1,p1:4255,p2:4360}, reveal:{label:'fundo macro'},
+   ok:'~4.280 lá no início — a base de toda a estrutura.',
+   bad:'O fundo macro está no início do gráfico (~4.280), a base de toda a estrutura.'},
+  {type:'mc', c:'bos', prompt:'<b>BOS</b> (Break of Structure) é um rompimento que…', options:['CONTINUA a tendência atual','MUDA a tendência','Só ocorre em ouro','Não significa nada'], answer:0,
+   ok:'BOS = rompimento a favor da tendência. Numa alta, romper um topo é BOS (confirma continuação).',
+   bad:'BOS é o rompimento a favor da tendência — confirma que ela continua.'},
+  {type:'click', c:'bos', scenario:'s1', prompt:'Toca onde ocorreu o <b>último rompimento da macro</b>.', sub:'Onde o preço quebrou o último fundo da alta.', zone:{i1:30,i2:35,p1:4540,p2:4700}, reveal:{label:'BOS ↓', hline:{price:4665,i1:21,i2:36,label:'fundo rompido (4.665)'}},
+   ok:'O preço quebrou o fundo de 4.665 com velas de expansão — o rompimento que virou o mercado.',
+   bad:'O rompimento foi na zona destacada: fecho abaixo de 4.665, o último fundo importante da alta.'},
+  {type:'mc', c:'bos', prompt:'Qual foi o <b>agente</b> do rompimento neste gráfico?', options:['A vela vermelha de expansão que fechou abaixo do fundo','A vela verde de retração','O pavio que tocou o topo','O fundo lá do início'], answer:0,
+   ok:'O agente é a vela de força que ATRAVESSA e FECHA além do nível — só o fechamento confirma.',
+   bad:'É a vela de expansão que fechou abaixo de 4.665. Pavios e retrações não confirmam — só o fecho.'},
+  {type:'mc', c:'choch', prompt:'<b>CHOCH</b> (Change of Character) sinaliza…', options:['MUDANÇA de tendência','Continuação','Só existe em TF altos','O mesmo que BOS'], answer:0,
+   ok:'CHOCH = rompimento CONTRA a direção vigente. É o primeiro sinal de que o caráter do mercado mudou.',
+   bad:'CHOCH é o rompimento contra a tendência — primeiro sinal de virada. BOS é a favor; CHOCH é contra.'},
+  {type:'click', c:'choch', scenario:'s2', prompt:'Este mercado estava em baixa. Toca onde houve o <b>CHOCH</b>.', sub:'Onde o preço quebrou o último topo da baixa.', zone:{i1:21,i2:25,p1:4470,p2:4590}, reveal:{label:'CHOCH ↑', hline:{price:4500,i1:11,i2:25,label:'último topo da baixa'}},
+   ok:'Após varrer os fundos, o preço quebrou o último topo da baixa (~4.500) — mudança de caráter para alta.',
+   bad:'O CHOCH está na zona destacada: quebra do último topo da baixa (~4.500), invertendo a estrutura.'},
+  {type:'mc', c:'measured move', prompt:'Um <b>measured move</b> serve para…', options:['Projetar o tamanho provável do próximo movimento','Medir o spread','Contar velas','Calcular juros'], answer:0,
+   ok:'Mede-se a primeira "perna" do movimento e projeta-se uma segunda de tamanho semelhante — alvo natural.',
+   bad:'Measured move projeta o próximo movimento com base no tamanho do anterior — um alvo de price action.'},
+  {type:'tf', c:'macro', prompt:'A primeira coisa a fazer ao abrir um gráfico é identificar o último rompimento da macro.', options:TF, answer:0,
+   ok:'Verdadeiro — direto da tua mentoria! 1º o último rompimento da macro; 2º o agente responsável por ele.',
+   bad:'É verdadeiro: 1º o último rompimento da macro estrutura, 2º o agente. É a ordem de prioridade da leitura.'},
+  {type:'click', c:'swing', scenario:'s1', prompt:'Toca no <b>último fundo importante</b> antes do rompimento.', sub:'O Swing Low que, ao cair, confirmou a virada.', zone:{i1:21,i2:23,p1:4625,p2:4705}, reveal:{label:'último Swing Low (4.665)'},
+   ok:'O fundo de ~4.665 — o último Swing Low da alta. Quando caiu, a estrutura virou.',
+   bad:'É o fundo de ~4.665 (destacado): último Swing Low da alta; a quebra dele confirmou a baixa.'}
+]},
+
+/* ===================== CAPÍTULO ESPECIAL — DOMINAR O ROMPIMENTO DA MACRO ===================== */
+{ id:'n4b', icon:'🎯', title:'N4★ · Dominar o Rompimento da Macro', desc:'Capítulo focado: identificar o último rompimento e o agente que o causou', special:true, questions:[
+  // 1 — Conceito-base (animação): o que confirma um rompimento
+  {type:'mc', c:'rompimento-fecho', anim:'b1', prompt:'O que <b>confirma</b> que a macro estrutura foi rompida?',
+   sub:'Observa a animação: o preço aproxima-se do último fundo.',
+   options:['O FECHO de uma vela além do nível','O pavio a tocar o nível','A cor da vela','O volume sozinho'], answer:0,
+   ok:'✅ <b>O fecho confirma, o pavio não.</b> Um rompimento da macro só é válido quando o <b>corpo</b> de uma vela fecha além do swing point — não basta o preço tocar ou furar com o pavio. O fecho mostra que o mercado <i>aceitou</i> o novo preço e que o controlo mudou de mãos.<br><br>📖 Esta é a regra nº1 do break of structure: "espera o corpo fechar além do nível; um pavio que fura e volta é apenas uma caça a stops".',
+   bad:'O que confirma é o <b>FECHO</b> da vela além do nível, não o pavio. Um pavio que fura e volta é uma armadilha (liquidity sweep). Só quando o corpo da vela fecha além do swing point é que o rompimento é real — o mercado "aceitou" o novo preço.'},
+
+  // 2 — Clique: identificar o último fundo (swing protegido) numa baixa
+  {type:'click', c:'rompimento-swing', scenario:'b1', prompt:'Antes do rompimento, qual é o <b>último fundo importante</b> (swing low protegido)?',
+   sub:'É o nível que, ao ser quebrado, confirma a continuação da baixa.',
+   zone:{i1:3,i2:3,p1:88,p2:96}, reveal:{label:'swing low protegido (90)', hline:{price:90,i1:3,i2:7,label:'nível a romper'}},
+   ok:'✅ Exato! Esse fundo (~90) é o <b>swing low protegido</b>: o último fundo relevante da estrutura. Ele torna-se "protegido" porque o preço fez um topo mais baixo depois dele. É ESTE o nível que precisa de ser fechado abaixo para haver rompimento.<br><br>🔑 Identificar corretamente o último swing é o passo que mais traders saltam — e sem ele, não consegues ver o rompimento.',
+   bad:'O último fundo importante é o swing low em ~90 (destacado). É o fundo mais recente que a estrutura deixou antes da quebra. Marca sempre este nível primeiro: é a "linha" que o preço tem de fechar abaixo para confirmar o rompimento.'},
+
+  // 3 — Clique: identificar o AGENTE (vela de displacement)
+  {type:'click', c:'agente', scenario:'b1', prompt:'Toca na vela <b>AGENTE</b> — a que efetivamente causou o rompimento.',
+   sub:'A vela cujo corpo fechou decisivamente abaixo do fundo de 90.',
+   zone:{i1:7,i2:7,p1:86,p2:99}, reveal:{label:'AGENTE (fecha em 89)', hline:{price:90,i1:3,i2:9,label:'fundo rompido (90)'}},
+   ok:'✅ Perfeito! Esta é a <b>vela-agente</b> (também chamada vela de <i>displacement</i>): grande, vermelha, unilateral, e o seu <b>corpo fecha em 89</b> — abaixo do fundo de 90. É ela que confirma o rompimento e revela a entrada de força vendedora institucional.<br><br>💡 O agente tem 3 marcas: (1) corpo grande, (2) fecha além do nível, (3) pouca "gordura" de pavio contra a direção do movimento.',
+   bad:'O agente é a vela vermelha grande que fecha em 89 (destacada), abaixo do fundo de 90. É a vela de <i>displacement</i>: corpo grande e decisivo na direção do rompimento. Não é o pavio nem a vela seguinte — é a vela cujo <b>fecho</b> quebrou o nível.'},
+
+  // 4 — ARMADILHA: sweep vs rompimento (clique)
+  {type:'click', c:'sweep-vs-bos', scenario:'b3', prompt:'⚠️ CUIDADO: aqui o preço furou o fundo. Toca na vela e decide — foi rompimento ou <b>armadilha</b>?',
+   sub:'Olha bem para onde o CORPO da vela fechou, não para o pavio.',
+   zone:{i1:6,i2:6,p1:82,p2:97}, reveal:{label:'SWEEP — pavio fura, fecho fica acima', hline:{price:90,i1:2,i2:9,label:'fundo (90)'}},
+   ok:'✅ Boa! Esta vela <b>não</b> rompeu a estrutura — é um <b>liquidity sweep</b> (armadilha). O pavio furou até 82, mas o <b>corpo fechou em 96, acima do fundo</b>. Resultado: o preço reverteu para cima. Quem entrou vendido no pavio foi apanhado.<br><br>🎯 Esta é exatamente a confusão que derruba a maioria: pavio a furar ≠ rompimento. Sem fecho além do nível, não há rompimento.',
+   bad:'É uma <b>armadilha (sweep)</b>, não um rompimento. Repara: o pavio furou o fundo (foi até 82), mas o <b>corpo fechou em 96 — acima</b> do nível de 90. Como não houve fecho abaixo, a estrutura aguentou e o preço reverteu. Lembra-te: só o fecho conta.'},
+
+  // 5 — Conceito: distinção pavio vs corpo (V/F)
+  {type:'tf', c:'sweep-vs-bos', prompt:'Se o pavio de uma vela ultrapassa o fundo mas o corpo fecha acima dele, a macro foi rompida.',
+   options:['✅ Verdadeiro','❌ Falso'], answer:1,
+   ok:'✅ Correto, é FALSO! Pavio a furar sem fecho além do nível = <b>liquidity sweep</b>, não rompimento. As instituições usam exatamente este movimento para "caçar" os stops antes de virar o preço. Espera SEMPRE o fecho.',
+   bad:'É <b>falso</b>. Um pavio que fura mas cujo corpo fecha do lado de cá NÃO rompe a estrutura — é uma caça a stops (sweep). O rompimento exige que o <b>corpo</b> da vela feche além do nível.'},
+
+  // 6 — Clique: BOS de alta (fecho acima do último topo)
+  {type:'click', c:'agente', scenario:'b2', prompt:'Nesta tendência de alta, toca no <b>agente</b> que rompeu o último topo.',
+   sub:'A vela verde cujo corpo fecha acima do topo anterior (~106).',
+   zone:{i1:6,i2:6,p1:103,p2:117}, reveal:{label:'AGENTE (fecha em 115)', hline:{price:106,i1:2,i2:9,label:'topo rompido (106)'}},
+   ok:'✅ Isso! A vela verde grande que <b>fecha em 115</b>, acima do topo de 106, é o agente do rompimento de alta. Confirma que os compradores assumiram o controlo e que a tendência de alta continua (isto é um BOS de alta — rompimento a favor da tendência).',
+   bad:'O agente é a vela verde grande que fecha em 115 (destacada), acima do topo de 106. Numa alta, o rompimento confirma-se quando uma vela <b>fecha acima</b> do último topo — e a vela que faz isso com força é o agente.'},
+
+  // 7 — Identificar o último topo relevante (clique, vários topos)
+  {type:'click', c:'rompimento-swing', scenario:'b4', prompt:'Há vários topos. Toca no <b>último topo relevante</b> que precisa de ser rompido.',
+   sub:'O topo mais recente antes do movimento de rompimento.',
+   zone:{i1:5,i2:5,p1:110,p2:114}, reveal:{label:'último topo (113)', hline:{price:113,i1:5,i2:9,label:'nível a romper'}},
+   ok:'✅ Certo! O topo relevante é o <b>mais recente</b> antes do rompimento (~113), não os topos antigos. O mercado só "rompe a macro" quando fecha acima do último topo que a estrutura deixou. Confundir topos antigos com o relevante é um erro comum.',
+   bad:'O topo relevante é o <b>mais recente</b> (~113, destacado), não os anteriores. É sempre o último swing que conta para o rompimento — é esse nível que, ao ser fechado acima, confirma a continuação da alta.'},
+
+  // 8 — Sequência completa: expansão → retração → rompimento (clique no agente)
+  {type:'click', c:'agente', scenario:'b5', prompt:'Sequência completa. Após a expansão e a retração, toca no <b>agente</b> do novo rompimento.',
+   sub:'A vela que fecha abaixo do fundo deixado antes da retração.',
+   zone:{i1:5,i2:5,p1:104,p2:115}, reveal:{label:'AGENTE (fecha em 105)', hline:{price:107,i1:2,i2:8,label:'fundo a romper (107)'}},
+   ok:'✅ Excelente leitura! Reconheceste o ciclo: <b>expansão</b> (queda) → <b>retração</b> (recuo para cima) → <b>rompimento</b> (a vela-agente fecha em 105, abaixo do fundo de 107). Este é o ritmo natural de uma tendência — e saber onde está o agente diz-te que a baixa continua.',
+   bad:'O agente é a vela que fecha em 105 (destacada), abaixo do fundo de 107 deixado antes da retração. O padrão é sempre: expansão → retração → continuação. O agente é a vela cujo fecho retoma a direção e quebra o nível.'},
+
+  // 9 — Ordem de leitura (múltipla escolha)
+  {type:'mc', c:'rompimento-processo', prompt:'Qual é a <b>ordem correta</b> para identificar o rompimento da macro?',
+   options:[
+     '1) marcar o último swing → 2) esperar o fecho além dele → 3) confirmar a vela-agente',
+     '1) olhar a cor da vela → 2) entrar → 3) ver depois',
+     '1) ver o pavio furar → 2) entrar logo → 3) torcer',
+     '1) abrir indicador → 2) seguir o sinal → 3) ignorar a estrutura'],
+   answer:0,
+   ok:'✅ Perfeito! Este é o método à prova de erro: <b>(1)</b> marca o último swing relevante (o nível), <b>(2)</b> espera uma vela FECHAR além dele (não o pavio), <b>(3)</b> confirma que foi uma vela-agente de força. Mecânico, sem adivinhação.<br><br>🔑 Faz isto na ordem e a tua maior dificuldade desaparece: o rompimento deixa de ser subjetivo.',
+   bad:'A ordem correta é: <b>(1)</b> marcar o último swing relevante, <b>(2)</b> esperar o FECHO além dele, <b>(3)</b> confirmar a vela-agente. É um processo mecânico — segue-o por passos e não precisas de adivinhar nem de reagir ao pavio.'},
+
+  // 10 — Síntese: agente + significado (múltipla escolha)
+  {type:'mc', c:'agente', prompt:'O que a <b>vela-agente</b> te diz sobre o mercado?',
+   options:[
+     'Que entrou força institucional e o controlo mudou de mãos',
+     'Que o mercado vai parar de se mover',
+     'Que o spread aumentou',
+     'Nada de relevante, é só mais uma vela'],
+   answer:0,
+   ok:'🏆 Dominaste o capítulo! A vela-agente (displacement) não é "só uma vela": o seu corpo grande e decisivo mostra que <b>entrou volume institucional</b> e que o controlo passou de um lado para o outro. É a pegada do dinheiro grande no gráfico — e a confirmação de que a nova direção tem combustível.',
+   bad:'A vela-agente revela que <b>entrou força institucional</b> e que o controlo mudou de mãos (de compradores para vendedores, ou vice-versa). O seu corpo grande é a "pegada" do dinheiro grande — por isso ela confirma o rompimento, enquanto um pavio sozinho não confirma nada.'}
+]},
+
+/* ===================== NÍVEL 5 — SMART MONEY CONCEPTS ===================== */
+{ id:'n5', icon:'🧠', title:'N5 · Smart Money Concepts', desc:'Liquidez, sweeps, inducement, order blocks, FVG e blocos', questions:[
+  {type:'mc', c:'liquidez SMC', prompt:'No SMC, <b>liquidez</b> concentra-se sobretudo…', options:['Acima de topos e abaixo de fundos (onde há stops)','No meio do range','Nos feriados','No spread'], answer:0,
+   ok:'Stops acumulam-se acima de topos e abaixo de fundos. É lá que os grandes "vão buscar" liquidez.',
+   bad:'A liquidez está acima de topos e abaixo de fundos, onde se acumulam stops — alvos do dinheiro institucional.'},
+  {type:'mc', c:'equal highs', prompt:'<b>Equal highs</b> (topos iguais) representam…', options:['Uma zona de liquidez acima do mercado','Suporte forte','Um indicador','Um gap'], answer:0,
+   ok:'Dois topos no mesmo nível atraem stops de venda logo acima — liquidez que costuma ser varrida.',
+   bad:'Topos iguais sinalizam liquidez acima (stops), frequentemente alvo de um sweep antes da reversão.'},
+  {type:'click', c:'liquidez SMC', scenario:'s2', prompt:'Toca na <b>liquidez</b> tomada antes da virada.', sub:'Procura fundos praticamente iguais (equal lows).', zone:{i1:14,i2:20,p1:4360,p2:4430}, reveal:{label:'liquidez (equal lows)'},
+   ok:'Os fundos iguais (~4.400) acumulam stops. O preço varreu-os (sweep) e só DEPOIS virou — clássico.',
+   bad:'A liquidez estava nos fundos iguais (~4.400, destacados): varridos primeiro, reversão depois.'},
+  {type:'mc', c:'liquidity sweep', prompt:'Um <b>liquidity sweep</b> é quando o preço…', options:['Varre stops além de um nível e depois reverte','Fica parado','Sobe devagar','Fecha o mercado'], answer:0,
+   ok:'O sweep é a "caça aos stops": fura o nível, recolhe a liquidez e inverte. Pavio longo é a sua assinatura.',
+   bad:'Sweep = varre os stops além do nível e reverte. O pavio longo a furar e voltar é o sinal típico.'},
+  {type:'mc', c:'inducement', prompt:'<b>Inducement</b> é…', options:['Uma isca que atrai traders antes do movimento real','Um indicador de volume','Uma vela verde','O mesmo que FVG'], answer:0,
+   ok:'O inducement é a armadilha: um pequeno topo/fundo óbvio que atrai entradas, cuja liquidez é depois tomada.',
+   bad:'Inducement é a isca: um nível óbvio que atrai traders, cuja liquidez é varrida antes do movimento verdadeiro.'},
+  {type:'mc', c:'order block', prompt:'Um <b>Order Block</b> é…', options:['A última vela contrária antes de um movimento forte','Qualquer vela grande','Um bloqueio da conta','Um tipo de stop'], answer:0,
+   ok:'Ex.: a última vela vermelha antes de um rally — zona onde instituições deixaram ordens. O preço tende a voltar lá.',
+   bad:'Order Block é a última vela contrária antes do impulso (ex.: última vermelha antes de subir forte).'},
+  {type:'click', c:'order block', scenario:'s9', prompt:'Toca na zona de <b>Order Block</b> de compra.', sub:'A última vela de baixa antes do impulso forte de alta.', zone:{i1:1,i2:2,p1:94,p2:100}, reveal:{label:'order block'},
+   ok:'A última vela vermelha antes do rally (destacada) é o OB de compra — zona de retorno provável.',
+   bad:'O Order Block é a última vermelha antes do impulso (zona destacada): onde a procura institucional entrou.'},
+  {type:'mc', c:'fvg', prompt:'Um <b>Fair Value Gap (FVG)</b> é…', options:['Um desequilíbrio deixado por um movimento rápido','O lucro justo','A taxa do broker','Uma vela de indecisão'], answer:0,
+   ok:'Quando o preço corre tão rápido que deixa um "vazio" entre velas, esse desequilíbrio tende a ser revisitado.',
+   bad:'FVG é o desequilíbrio/vazio deixado por um movimento veloz — zona que o mercado costuma revisitar.'},
+  {type:'mc', c:'mitigation', prompt:'<b>Mitigation</b> ocorre quando o preço…', options:['Volta a uma zona para "resolver" ordens deixadas','Fecha o mercado','Some do gráfico','Dobra de valor'], answer:0,
+   ok:'O preço regressa ao order block/FVG para mitigar (acertar contas com) as ordens não preenchidas, antes de seguir.',
+   bad:'Mitigation é o retorno do preço a uma zona (OB/FVG) para resolver ordens pendentes antes de continuar.'},
+  {type:'mc', c:'breaker', prompt:'Um <b>Breaker Block</b> forma-se quando…', options:['Um order block falha e o preço o rompe, invertendo o papel','O mercado abre','Há um doji','O spread aumenta'], answer:0,
+   ok:'Quando um OB é rompido, ele "quebra" e passa a atuar no sentido oposto — vira breaker, novo nível de reação.',
+   bad:'Breaker = order block que falhou e foi rompido; passa a funcionar no sentido contrário.'},
+  {type:'mc', c:'premium/discount', prompt:'Comprar em <b>discount</b> significa comprar…', options:['Abaixo do ponto médio (50%) do movimento','No topo','No meio exato','Em qualquer lugar'], answer:0,
+   ok:'Discount = metade inferior (barato); premium = metade superior (caro). Compra-se barato, vende-se caro.',
+   bad:'Discount é abaixo do 50% (zona barata). Premium é acima (cara). O equilíbrio é o 50%.'},
+  {type:'click', c:'premium/discount', scenario:'s10', prompt:'Toca aproximadamente na zona de <b>equilíbrio</b> (50% do impulso).', sub:'O meio entre o fundo e o topo do movimento.', zone:{i1:7,i2:10,p1:114,p2:124}, reveal:{label:'equilíbrio (50%)'},
+   ok:'O 50% separa premium (acima, caro) de discount (abaixo, barato). É a referência para entradas com bom preço.',
+   bad:'O equilíbrio é o ponto médio do impulso (zona destacada): acima é premium, abaixo é discount.'}
+]},
+
+/* ===================== NÍVEL 6 — PADRÕES & SINAIS ===================== */
+{ id:'n6', icon:'🔺', title:'N6 · Padrões & Sinais de Entrada', desc:'OCO, M/W, signal bars, second entry, spike and channel', questions:[
+  {type:'mc', c:'OCO', prompt:'O padrão <b>Ombro-Cabeça-Ombro</b> sinaliza tipicamente…', options:['Reversão de alta para baixa','Continuação da alta','Consolidação eterna','Nada'], answer:0,
+   ok:'OCO de topo = três picos (ombro-cabeça-ombro) e quebra da "linha de pescoço" = reversão para baixa.',
+   bad:'O OCO de topo é padrão de reversão de alta→baixa: confirma quando o preço quebra a linha de pescoço.'},
+  {type:'click', c:'OCO', scenario:'s5', prompt:'Toca na <b>cabeça</b> do padrão Ombro-Cabeça-Ombro.', sub:'O pico mais alto, entre os dois ombros.', zone:{i1:7,i2:7,p1:122,p2:132}, reveal:{label:'cabeça'},
+   ok:'A cabeça é o pico central mais alto (~128). Os dois ombros ficam mais baixos, um de cada lado.',
+   bad:'A cabeça é o pico central mais alto do padrão (destacado) — o topo entre os dois ombros.'},
+  {type:'mc', c:'topo duplo', prompt:'Um <b>Topo Duplo (M)</b> indica…', options:['Reversão de alta para baixa','Continuação da alta','Um gap','Indecisão'], answer:0,
+   ok:'Dois topos no mesmo nível (forma de "M") + quebra do vale entre eles = reversão de baixa.',
+   bad:'O Topo Duplo "M" é reversão de alta→baixa: dois topos iguais e quebra do vale confirmam.'},
+  {type:'click', c:'topo duplo', scenario:'s6', prompt:'Este é um Topo Duplo. Toca no <b>segundo topo</b> (a segunda perna do M).', zone:{i1:9,i2:11,p1:120,p2:130}, reveal:{label:'2º topo'},
+   ok:'O segundo topo bate no mesmo nível do primeiro (~126) e falha — daí a reversão.',
+   bad:'O segundo topo está na zona destacada: bateu no mesmo nível do primeiro e falhou.'},
+  {type:'mc', c:'fundo duplo', prompt:'Um <b>Fundo Duplo (W)</b> indica…', options:['Reversão de baixa para alta','Continuação da baixa','Um doji','Liquidez'], answer:0,
+   ok:'Dois fundos no mesmo nível (forma de "W") + quebra do topo entre eles = reversão de alta.',
+   bad:'O Fundo Duplo "W" é reversão de baixa→alta: dois fundos iguais e quebra do topo confirmam.'},
+  {type:'mc', c:'signal bar', prompt:'Uma <b>signal bar</b> (vela de sinal) é…', options:['A vela que prepara a entrada; entras se a seguinte a confirmar','A vela de fechamento do dia','Qualquer doji','Um indicador'], answer:0,
+   ok:'Na leitura barra a barra: a signal bar dá o sinal; entras na entry bar (quando o preço passa do extremo dela).',
+   bad:'A signal bar é a vela que prepara o sinal; a entrada ocorre na vela seguinte (entry bar) ao romper o seu extremo.'},
+  {type:'mc', c:'reversal bar', prompt:'Uma <b>bull reversal bar</b> num suporte tem tipicamente…', options:['Pavio inferior longo e fecho perto do topo','Corpo vermelho enorme','Sem pavios','Dois corpos'], answer:0,
+   ok:'É a "pin bar" de fundo: rejeita preços baixos (pavio longo) e fecha forte — sinal de compra no contexto certo.',
+   bad:'Uma bull reversal bar tem pavio inferior longo e fecho perto do topo — rejeição de preços baixos.'},
+  {type:'click', c:'reversal bar', scenario:'s11', prompt:'Toca na <b>reversal bar</b> (rejeição) que marcou o fundo.', sub:'Pavio inferior longo no ponto mais baixo.', zone:{i1:5,i2:5,p1:78,p2:104}, reveal:{label:'reversal bar'},
+   ok:'O pavio longo no fundo mostra que a venda foi rejeitada — a partir daí o preço inverteu para alta.',
+   bad:'É a vela de pavio inferior longo no fundo (destacada): rejeitou a queda e iniciou a reversão.'},
+  {type:'mc', c:'second entry', prompt:'Por que uma <b>segunda entrada</b> (second entry) costuma ser mais fiável?', options:['A primeira muitas vezes é uma armadilha; a segunda confirma','É mais rápida','Tem menos spread','É sempre lucrativa'], answer:0,
+   ok:'A 1ª tentativa frequentemente falha (sweep/inducement). A 2ª, após a falha, tem maior probabilidade — princípio de Brooks.',
+   bad:'Porque a primeira tentativa costuma ser armadilha; a segunda entrada, após a falha, é estatisticamente mais fiável.'},
+  {type:'mc', c:'spike and channel', prompt:'No padrão <b>spike and channel</b>, o "spike" é…', options:['O impulso inicial forte e veloz','O recuo final','Um doji','Um gap de exaustão'], answer:0,
+   ok:'Spike = explosão inicial (velas grandes); channel = a subida mais lenta e inclinada que se segue. Padrão de tendência de Brooks.',
+   bad:'O spike é o impulso inicial veloz; depois vem o channel (subida mais controlada). Juntos formam o padrão.'},
+  {type:'click', c:'spike and channel', scenario:'s8', prompt:'Toca na fase de <b>spike</b> (impulso inicial).', sub:'As primeiras velas grandes e verticais.', zone:{i1:0,i2:3,p1:96,p2:150}, reveal:{label:'spike'},
+   ok:'O spike são as primeiras velas explosivas (destacadas); a partir daí o mercado entra no canal mais lento.',
+   bad:'O spike é a explosão inicial (zona destacada): velas grandes e verticais antes do canal.'},
+  {type:'tf', c:'inside bar', prompt:'Uma inside bar (vela "dentro" da anterior) indica contração/indecisão e pode preceder um rompimento.', options:TF, answer:0,
+   ok:'Verdadeiro! A inside bar mostra compressão; muitas vezes antecede uma expansão (breakout) num dos lados.',
+   bad:'É verdadeiro: a inside bar é compressão/indecisão e costuma anteceder um rompimento.'}
+]},
+
+/* ===================== NÍVEL 7 — CONTEXTO & MULTI-TIMEFRAME ===================== */
+{ id:'n7', icon:'🔭', title:'N7 · Contexto & Multi-Timeframe', desc:'Narrativa, direcionalidade e alinhamento de estruturas', questions:[
+  {type:'mc', c:'multi-timeframe', prompt:'Na <b>análise multi-timeframe</b>, a ordem de leitura correta é…', options:['Do maior para o menor (contexto → entrada)','Do menor para o maior','Só o de 1 minuto','Aleatória'], answer:0,
+   ok:'Lê o TF maior para a direção, desce ao médio para a estrutura e ao menor para a entrada precisa.',
+   bad:'Lê-se do maior (contexto/direção) para o menor (entrada). O grande manda; o pequeno afina.'},
+  {type:'mc', c:'multi-timeframe', prompt:'Se o 4h está em alta e o 5m está em baixa, o 5m provavelmente é…', options:['Um pullback dentro da alta maior','Uma nova tendência definitiva','Um erro do gráfico','Irrelevante'], answer:0,
+   ok:'A baixa no TF menor costuma ser apenas a retração da alta maior — oportunidade de compra a favor do contexto.',
+   bad:'É um pullback: a baixa no 5m é a retração da alta do 4h. O contexto maior continua a mandar.'},
+  {type:'mc', c:'narrativa', prompt:'A "narrativa de mercado" é…', options:['A história coerente do que o preço está a fazer e porquê','Uma notícia qualquer','O nome do par','O volume do dia'], answer:0,
+   ok:'É juntar estrutura + liquidez + contexto numa só história: "varreu liquidez aqui, virou ali, agora busca aquele alvo".',
+   bad:'Narrativa é a história coerente do gráfico: onde está a liquidez, onde virou e para onde provavelmente vai.'},
+  {type:'mc', c:'direcionalidade', prompt:'Estar "always in long" (sempre comprado) significa que…', options:['A leitura aponta claramente para alta','Compras tudo sempre','Nunca vendes','O broker decide'], answer:0,
+   ok:'Conceito de Brooks: se tivesses de estar no mercado, estarias comprado — a direção dominante é de alta.',
+   bad:'Significa que a direção dominante é de alta: se fosses obrigado a ter posição, estarias comprado.'},
+  {type:'mc', c:'alinhamento', prompt:'O cenário de maior probabilidade acontece quando…', options:['Vários timeframes apontam para a mesma direção','Os TFs se contradizem','Só o de 1m aponta','Há muitas notícias'], answer:0,
+   ok:'Alinhamento = confluência. Quando o contexto, a estrutura e o gatilho concordam, a probabilidade é maior.',
+   bad:'Quando vários timeframes se alinham na mesma direção — confluência é o que aumenta a probabilidade.'},
+  {type:'mc', c:'contexto institucional', prompt:'Por que os grandes precisam de <b>liquidez</b> para entrar?', options:['Movem volumes enormes e precisam de contrapartes','São impacientes','Querem feriados','Para pagar menos spread'], answer:0,
+   ok:'Uma ordem institucional gigante só se preenche onde há muitas ordens opostas — daí caçarem zonas de liquidez.',
+   bad:'Porque movem volumes enormes: só conseguem preencher ordens onde há liquidez (stops acumulados).'},
+  {type:'tf', c:'multi-timeframe', prompt:'Uma entrada contra o timeframe maior tem, em média, menor probabilidade.', options:TF, answer:0,
+   ok:'Verdadeiro! Operar contra o contexto maior é contratendência — risco maior, probabilidade menor.',
+   bad:'É verdadeiro: contra o TF maior estás a operar contratendência, o que reduz a probabilidade.'},
+  {type:'mc', c:'narrativa', prompt:'Antes de entrar, a melhor pergunta é:', options:['"Onde está a liquidez e para onde o preço quer ir?"','"Que cor tem a última vela?"','"Quantos pips já subiu?"','"Que horas são?"'], answer:0,
+   ok:'A narrativa orienta tudo: identifica a liquidez-alvo e a direção provável antes de pensar em entrada.',
+   bad:'A pergunta-chave é sobre liquidez e direção provável — é a narrativa que dá sentido à entrada.'}
+]},
+
+/* ===================== NÍVEL 8 — EXECUÇÃO ===================== */
+{ id:'n8', icon:'🎯', title:'N8 · Execução & Gestão da Posição', desc:'Entradas, confirmações, parciais e trade management', questions:[
+  {type:'mc', c:'entrada', prompt:'Uma boa <b>entrada</b> normalmente combina…', options:['Zona (liquidez/OB) + gatilho (vela de confirmação)','Só pressentimento','Só o preço redondo','Apenas a cor da vela'], answer:0,
+   ok:'Zona dá o "onde"; o gatilho (signal bar/reversal) dá o "quando". Os dois juntos formam a entrada.',
+   bad:'Combina a zona (onde) com o gatilho de confirmação (quando) — nunca só um pressentimento.'},
+  {type:'mc', c:'confirmação', prompt:'Esperar a <b>confirmação</b> antes de entrar serve para…', options:['Reduzir entradas em falsos sinais','Pagar mais spread','Entrar mais cedo sempre','Garantir lucro'], answer:0,
+   ok:'A confirmação (ex.: CHOCH no TF menor, fecho de vela) filtra armadilhas — trocas um pouco de preço por probabilidade.',
+   bad:'Serve para filtrar falsos sinais: esperas o preço confirmar a tua ideia antes de arriscar.'},
+  {type:'mc', c:'trade management', prompt:'Mover o stop para o ponto de entrada (breakeven) serve para…', options:['Proteger o capital depois de o trade andar a favor','Aumentar o risco','Garantir o alvo','Pagar o broker'], answer:0,
+   ok:'Após o preço avançar, o breakeven transforma o trade em "risco zero" — proteges o que já conquistaste.',
+   bad:'Breakeven protege o capital: depois de o trade andar a favor, deixas de poder perder nessa operação.'},
+  {type:'mc', c:'parcial', prompt:'Realizar <b>parciais</b> significa…', options:['Fechar parte da posição e deixar o resto correr','Fechar tudo de uma vez','Dobrar a posição','Mudar de par'], answer:0,
+   ok:'Realizas parte no primeiro alvo (garante lucro) e deixas o resto buscar alvos maiores — equilíbrio risco/retorno.',
+   bad:'Parcial = fechar uma parte no primeiro alvo e deixar o restante correr para alvos maiores.'},
+  {type:'mc', c:'trade management', prompt:'Onde deve ficar, em regra, o <b>stop</b> de uma compra?', options:['Abaixo da estrutura/zona que invalida a ideia','No mesmo preço da entrada','Muito longe, ao acaso','Acima da entrada'], answer:0,
+   ok:'O stop fica onde a tua ideia deixa de fazer sentido (abaixo do fundo/OB). Se chegar lá, a leitura estava errada.',
+   bad:'O stop fica abaixo da estrutura que invalida a ideia — o nível onde admites que estavas errado.'},
+  {type:'tf', c:'confirmação', prompt:'Quanto mais confirmação esperas, melhor o preço de entrada.', options:TF, answer:1,
+   ok:'Falso! Há um trade-off: mais confirmação = mais segurança, mas pior preço (entras mais tarde). É preciso equilíbrio.',
+   bad:'É falso: mais confirmação dá segurança mas piora o preço de entrada. O segredo é o equilíbrio, não o extremo.'},
+  {type:'mc', c:'entrada', prompt:'Entrar <b>a mercado</b> no meio de um impulso forte, longe da zona, costuma dar…', options:['Stop largo e mau risco:retorno','O melhor preço','Risco zero','Lucro garantido'], answer:0,
+   ok:'Perseguir o preço (FOMO) afasta-te da zona e obriga a stop largo — o risco:retorno piora muito.',
+   bad:'Dá stop largo e mau risco:retorno: perseguir o preço longe da zona é entrada de FOMO.'}
+]},
+
+/* ===================== NÍVEL 9 — GESTÃO DE RISCO ===================== */
+{ id:'n9', icon:'🛡️', title:'N9 · Gestão de Risco', desc:'Position sizing, R:R, drawdown, expectativa e probabilidade', questions:[
+  {type:'mc', c:'stop loss', prompt:'O <b>Stop Loss</b> serve para…', options:['Limitar a perda máxima da operação','Garantir lucro','Aumentar o lote','Impressionar o broker'], answer:0,
+   ok:'O stop é o teu seguro: define antes quanto aceitas perder se a leitura falhar.',
+   bad:'O Stop Loss limita a perda: sais automaticamente se o mercado for contra ti. Define-se sempre antes.'},
+  {type:'mc', c:'risk reward', prompt:'Arriscas 50 pontos com alvo de 150. Qual o Risk:Reward?', options:['1:3','3:1','1:1','1:50'], answer:0,
+   ok:'150 ÷ 50 = 3. Com 1:3 podes errar 2 em 3 trades e ainda ficar positivo.',
+   bad:'R:R = alvo ÷ risco = 150 ÷ 50 = 1:3. Cada acerto paga 3 erros do mesmo tamanho.'},
+  {type:'mc', c:'position sizing', prompt:'O <b>tamanho da posição</b> deve ser calculado a partir de…', options:['Do risco em % e da distância até ao stop','Do palpite do dia','Do saldo total sempre','Da cor da vela'], answer:0,
+   ok:'Defines o risco (ex.: 1% da conta) e a distância ao stop; o lote sai dessa conta. Risco primeiro, lote depois.',
+   bad:'Calcula-se a partir do risco em % e da distância ao stop — nunca do palpite. Risco fixo, lote variável.'},
+  {type:'mc', c:'position sizing', prompt:'Conta de 1.000€, risco de 1% e stop de 50 pips. Quanto arriscas em €?', options:['10€','100€','1€','50€'], answer:0,
+   ok:'1% de 1.000€ = 10€. O lote ajusta-se para que 50 pips valham exatamente esses 10€.',
+   bad:'1% de 1.000€ são 10€. É esse o valor que arriscas; o lote é dimensionado para isso.'},
+  {type:'mc', c:'drawdown', prompt:'<b>Drawdown</b> é…', options:['A queda do capital desde o pico','O lucro do mês','A comissão','Um padrão de velas'], answer:0,
+   ok:'De 1.000 para 850 = 15% de drawdown. Controlá-lo é o que mantém um trader vivo.',
+   bad:'Drawdown é quanto a conta caiu desde o ponto mais alto (ex.: 1.000→850 = 15%).'},
+  {type:'mc', c:'expectativa', prompt:'A <b>expectativa matemática</b> de um sistema combina…', options:['Taxa de acerto × ganho médio − taxa de erro × perda média','Só a taxa de acerto','Só o R:R','A sorte'], answer:0,
+   ok:'Um sistema pode acertar pouco e ainda ser lucrativo se o R:R for alto. A expectativa é o que conta no longo prazo.',
+   bad:'Expectativa = (acerto × ganho médio) − (erro × perda média). É ela, não a taxa de acerto isolada, que define lucro.'},
+  {type:'tf', c:'expectativa', prompt:'Um sistema que acerta só 40% das vezes pode ser lucrativo.', options:TF, answer:0,
+   ok:'Verdadeiro! Com R:R 1:3, acertar 40% já é muito lucrativo. Probabilidade e R:R andam de mãos dadas.',
+   bad:'É verdadeiro: com R:R alto (ex.: 1:3), 40% de acerto é lucrativo. O R:R compensa a taxa de acerto.'},
+  {type:'mc', c:'consistência', prompt:'O maior inimigo da <b>consistência estatística</b> é…', options:['Mudar de risco/estratégia a cada trade','Usar o mesmo risco sempre','Anotar os trades','Ter um plano'], answer:0,
+   ok:'A vantagem só aparece numa amostra grande com regras fixas. Mudar tudo a cada trade impede que a estatística trabalhe a teu favor.',
+   bad:'É mudar de risco/estratégia a cada trade: sem consistência, a tua vantagem estatística nunca se concretiza.'},
+  {type:'mc', c:'risk reward', prompt:'R:R de 1:2 significa que…', options:['O ganho potencial é o dobro do risco','O risco é o dobro do ganho','Ganhas sempre o dobro','Precisas de 2 contas'], answer:0,
+   ok:'Arriscas 1 para ganhar 2. Acertar metade das vezes já te deixa lucrativo.',
+   bad:'1:2 = para cada 1 de risco, 2 de alvo. Mesmo com 50% de acerto, o resultado é positivo.'}
+]},
+
+/* ===================== NÍVEL 10 — PSICOLOGIA & PROFISSIONAL ===================== */
+{ id:'n10', icon:'🧘', title:'N10 · Psicologia & Profissional', desc:'FOMO, disciplina, backtesting, journaling e plano', questions:[
+  {type:'mc', c:'fomo', prompt:'<b>FOMO</b> é…', options:['Medo de ficar de fora, que leva a entradas atrasadas','Uma estratégia de scalping','Um indicador','Um par de moedas'], answer:0,
+   ok:'"Fear Of Missing Out": vês o preço a fugir e entras tarde, sem plano — geralmente no pior ponto.',
+   bad:'FOMO é o medo de perder o movimento: faz entrar atrasado e sem plano, perto do fim do impulso.'},
+  {type:'mc', c:'revenge', prompt:'<b>Revenge trading</b> é…', options:['Operar para "recuperar" uma perda, sem setup','Operar uma vez por mês','Usar dois monitores','Anotar trades'], answer:0,
+   ok:'Tentar a vingança transforma uma perda pequena num desastre. Após perder: pausa, não dobra.',
+   bad:'Revenge trading é operar por raiva para recuperar a perda — a forma mais rápida de destruir uma conta.'},
+  {type:'tf', c:'disciplina', prompt:'Depois de uma perda, dobrar a posição para recuperar é boa ideia.', options:TF, answer:1,
+   ok:'Falso! É revenge trading. Após perder: pausa, revisão e volta ao plano com o risco normal.',
+   bad:'É falso: dobrar após perder é revenge trading. O caminho é pausar e voltar ao plano, não ao dobro.'},
+  {type:'mc', c:'disciplina', prompt:'<b>Disciplina</b> no trading significa…', options:['Seguir o plano mesmo sob emoção','Operar todos os dias','Nunca aceitar perdas','Acordar às 5h'], answer:0,
+   ok:'O plano é feito a frio; a disciplina é executá-lo quando a cabeça está quente. O plano protege-te de ti.',
+   bad:'Disciplina é executar o plano definido a frio, mesmo sob medo ou ganância.'},
+  {type:'mc', c:'backtesting', prompt:'<b>Backtesting</b> é…', options:['Testar a estratégia em dados históricos','Adivinhar o futuro','Copiar trades','Mudar de broker'], answer:0,
+   ok:'Aplicas as tuas regras ao passado para medir se têm vantagem — sem arriscar dinheiro real.',
+   bad:'Backtesting é testar as regras em histórico para ver se têm vantagem antes de arriscar dinheiro.'},
+  {type:'mc', c:'journaling', prompt:'Manter um <b>diário de trades</b> serve para…', options:['Detetar padrões nos teus acertos e erros','Impressionar amigos','Pagar menos imposto','Aumentar o lote'], answer:0,
+   ok:'O diário transforma experiência em aprendizagem: vês onde erras de forma recorrente e corriges.',
+   bad:'O journaling revela os teus padrões (bons e maus) — é como transformas trades em melhoria real.'},
+  {type:'mc', c:'plano', prompt:'Um <b>plano de trading</b> deve definir, no mínimo…', options:['Setup, risco por trade, regras de entrada/saída','Apenas o par favorito','Só o objetivo de lucro','A cor do gráfico'], answer:0,
+   ok:'Plano = regras escritas: o que operas, quanto arriscas, quando entras e sais. Tira a emoção da decisão.',
+   bad:'O plano define setup, risco por trade e regras de entrada/saída — escrito, para a emoção não decidir.'},
+  {type:'tf', c:'disciplina', prompt:'Ficar fora do mercado também é uma decisão válida.', options:TF, answer:0,
+   ok:'Verdadeiro! Sem setup claro, não operar é a decisão correta. Capital preservado é munição para o trade certo.',
+   bad:'É verdadeiro: sem setup claro, a melhor operação é nenhuma. Proteger capital é parte do trabalho.'},
+  {type:'mc', c:'overtrading', prompt:'<b>Overtrading</b> é…', options:['Operar em excesso, sem critério','Estudar demais','Usar stop','Ter um diário'], answer:0,
+   ok:'Trade atrás de trade por tédio ou pressa destrói a vantagem. Menos operações, mais qualidade.',
+   bad:'Overtrading é operar demais sem setup válido — drena a conta com custos e más entradas.'}
+]},
+
+/* ===================== NÍVEL 11 — ESTUDOS DE CASO ===================== */
+{ id:'n11', icon:'🔎', title:'N11 · Estudos de Caso', desc:'Análise completa em Ouro, índices e cenários reais', questions:[
+  {type:'trend', c:'caso ouro', scenario:'s1', prompt:'CASO XAUUSD 4h. Qual é a direção dominante agora?', sub:'Lê a macro primeiro.', options:TREND, answer:1,
+   ok:'Baixa: após o topo, rompeu o fundo de 4.665 e faz fundos mais baixos. Toda a análise parte daqui.',
+   bad:'É baixa: o último rompimento da macro foi de fundo. A direção dominante manda em tudo o resto.'},
+  {type:'click', c:'caso ouro', scenario:'s1', prompt:'Neste caso, onde colocarias o foco para uma <b>venda</b> a favor da tendência?', sub:'Numa retração até uma zona, não no fundo.', zone:{i1:35,i2:39,p1:4555,p2:4685}, reveal:{label:'zona de venda (retração)'},
+   ok:'Vendes na retração (zona destacada), a favor da baixa — não persegues o fundo. Entrada com bom preço e stop curto.',
+   bad:'O foco de venda é a retração (zona destacada): entras a favor da baixa com bom preço, não no fundo já esticado.'},
+  {type:'click', c:'caso reversão', scenario:'s2', prompt:'CASO de reversão. Toca no evento que mudou tudo (o <b>CHOCH</b>).', zone:{i1:21,i2:25,p1:4470,p2:4590}, reveal:{label:'CHOCH ↑'},
+   ok:'O CHOCH (quebra do último topo da baixa) é o ponto que muda a narrativa de baixa para alta.',
+   bad:'É o CHOCH (zona destacada): a quebra do último topo da baixa marca a virada da narrativa.'},
+  {type:'mc', c:'caso reversão', prompt:'Nesse caso (S2), o que aconteceu ANTES do CHOCH?', options:['Um sweep da liquidez nos fundos iguais','Um gap de abertura','Um feriado','Nada de relevante'], answer:0,
+   ok:'A sequência institucional: varre a liquidez (sweep dos equal lows) → CHOCH → tendência nova. Narrativa completa.',
+   bad:'Houve um sweep dos fundos iguais (liquidez) antes do CHOCH — a assinatura clássica de uma reversão SMC.'},
+  {type:'trend', c:'caso índice', scenario:'s5', prompt:'CASO DAX (S5). Que padrão e direção este gráfico sugere?', sub:'Repara nos três picos.', options:['📈 Continuação de alta','📉 Reversão para baixa (OCO)','↔️ Range'], answer:1,
+   ok:'É um Ombro-Cabeça-Ombro de topo: três picos, o central mais alto — reversão de alta para baixa.',
+   bad:'É reversão para baixa: o padrão OCO (três picos, cabeça ao centro) sinaliza fim da alta.'},
+  {type:'click', c:'caso índice', scenario:'s7', prompt:'CASO de tendência forte (S7). Toca no <b>gap de fuga</b> que confirmou a força.', zone:{i1:6,i2:7,p1:112,p2:130}, reveal:{label:'gap de fuga'},
+   ok:'O gap de fuga no meio da tendência (destacado) confirma convicção — a alta tinha combustível para continuar.',
+   bad:'É o gap de fuga (zona destacada): salto sem negociação no meio da alta, sinal de força e continuação.'},
+  {type:'mc', c:'caso processo', prompt:'Qual é a ordem correta de análise de um gráfico, do início ao fim?', options:['Direção (macro) → liquidez/zonas → gatilho de entrada → risco','Entrada → direção → risco','Risco → cor da vela → entrada','Notícias → palpite → lote'], answer:0,
+   ok:'Esse é o fluxo profissional: contexto primeiro, zona depois, gatilho a seguir e risco sempre a fechar a decisão.',
+   bad:'A ordem é: direção (macro) → liquidez/zonas → gatilho → risco. Contexto primeiro, execução por último.'}
+]},
+
+/* ===================== NÍVEL 12 — SIMULAÇÕES & AVALIAÇÃO FINAL ===================== */
+{ id:'n12', icon:'🏁', title:'N12 · Simulações & Prova Final', desc:'Decisão em cenário real e avaliação cumulativa', questions:[
+  {type:'trend', c:'sim', scenario:'s8', prompt:'SIMULAÇÃO 1. O preço fez uma explosão e agora sobe num canal. Direção?', options:TREND, answer:0,
+   ok:'Alta: spike and channel é um padrão de tendência de alta — spike inicial seguido de canal ascendente.',
+   bad:'É alta: o spike and channel é estrutura de tendência de alta (impulso + canal a subir).'},
+  {type:'click', c:'sim', scenario:'s9', prompt:'SIMULAÇÃO 2. O preço subiu forte e recuou. Onde está a zona de <b>compra</b> (order block)?', sub:'A última vela de baixa antes do impulso.', zone:{i1:1,i2:2,p1:94,p2:100}, reveal:{label:'order block (compra)'},
+   ok:'O order block (destacado) é a zona de retorno provável para retomar a compra — entrada institucional.',
+   bad:'É o order block (zona destacada): a última vela de baixa antes do impulso, zona de compra na mitigação.'},
+  {type:'mc', c:'prova', prompt:'PROVA. O preço varre um topo de liquidez, fecha de volta abaixo e faz CHOCH. Isto é…', options:['Sweep + reversão (provável topo)','Continuação de alta forte','Um range','Um gap de exaustão'], answer:0,
+   ok:'Sweep da liquidez acima + rejeição + CHOCH = assinatura de topo. Narrativa institucional clássica.',
+   bad:'É sweep + reversão: varreu a liquidez, rejeitou e mudou de caráter (CHOCH) — provável topo.'},
+  {type:'mc', c:'prova', prompt:'PROVA. Conta 2.000€, risco 1%, stop 40 pips. Qual o risco em €?', options:['20€','40€','200€','2€'], answer:0,
+   ok:'1% de 2.000€ = 20€. O lote dimensiona-se para que 40 pips valham 20€.',
+   bad:'1% de 2.000€ são 20€ — esse é o risco; o lote ajusta-se à distância do stop.'},
+  {type:'trend', c:'prova', scenario:'s3', prompt:'PROVA. Sem rompimentos, preço entre teto e chão. Situação?', options:TREND, answer:2,
+   ok:'Consolidação. Em range, esperas o rompimento — operar topo/fundo do range é mais arriscado para iniciantes.',
+   bad:'É consolidação (range): sem rompimento não há tendência; o sinal vem quando o preço romper o teto ou o chão.'},
+  {type:'mc', c:'prova', prompt:'PROVA. Qual a PRIMEIRA coisa a identificar ao abrir qualquer gráfico?', options:['O último rompimento da macro estrutura','O indicador mais bonito','A cor da última vela','As notícias do dia'], answer:0,
+   ok:'Sempre a macro primeiro — direto da tua mentoria. Depois o agente, depois liquidez, zona e risco.',
+   bad:'É o último rompimento da macro estrutura: define a direção. Tudo o resto vem depois dela.'},
+  {type:'mc', c:'prova', prompt:'PROVA FINAL. Um trader consistente é aquele que…', options:['Gere risco e segue o plano em muitos trades','Acerta sempre','Nunca tem perdas','Usa o maior lote'], answer:0,
+   ok:'Parabéns! A consistência vem da gestão de risco e da disciplina ao longo de muitos trades — não de acertar sempre.',
+   bad:'É quem gere o risco e segue o plano repetidamente. Perdas fazem parte; a vantagem aparece na amostra grande.'}
+]}
+];
+/* ============================================================
+   GAMIFICAÇÃO
+   ============================================================ */
+const TITLES = ['Aprendiz','Observador','Leitor de Velas','Estruturalista','Caçador de Liquidez','Leitor de Fluxo','Analista Tático','Estratega','Trader Consistente','Mestre dos Gráficos'];
+const BADGES = [
+  {id:'first', icon:'🎯', name:'Primeira lição', cond:s=>Object.keys(s.done).length>=1},
+  {id:'perfect', icon:'💎', name:'Lição perfeita', cond:s=>s.perfects>=1},
+  {id:'half', icon:'🚀', name:'6 níveis', cond:s=>Object.keys(s.done).length>=6},
+  {id:'all', icon:'🏆', name:'Curso completo', cond:s=>Object.keys(s.done).length>=12},
+  {id:'xp500', icon:'⚡', name:'500 XP', cond:s=>s.xp>=500},
+  {id:'streak3', icon:'🔥', name:'3 dias seguidos', cond:s=>s.streak>=3},
+  {id:'review10', icon:'🔁', name:'10 revisões', cond:s=>(s.reviewsDone||0)>=10},
+  {id:'mission5', icon:'📅', name:'5 missões diárias', cond:s=>(s.missionsDone||0)>=5},
+  {id:'sharp', icon:'🎓', name:'90% de precisão', cond:s=>{const t=s.attempts.length,o=s.attempts.filter(a=>a.ok).length;return t>=40&&o/t>=0.9;}}
+];
+
+let state = { xp:0, streak:1, lastDay:dayStr(), done:{}, attempts:[], perfects:0,
+              review:{}, reviewsDone:0, missionsDone:0, missionDay:'', missionDone:false,
+              inProgress:null };
+function dayStr(){ return new Date().toISOString().slice(0,10); }
+
+/* ============================================================
+   FONTES — citações dos livros por conceito (para "Aprofundar")
+   Livros: Lien = Day Trading & Swing Trading the Currency Market
+           Brooks = Trading Price Action TRENDS
+           Cascalheira = Análise Técnica dos Índices Bolsistas Europeus
+   ============================================================ */
+const SOURCES = {
+  _default:{book:'Material da mentoria', cite:'', label:'este conceito', search:''},
+  // Nível 1 — Fundamentos
+  'forex':{book:'Kathy Lien', chapter:'Cap. 1 — O mercado FX', cite:'O Forex é o maior mercado financeiro do mundo, com negociação descentralizada 24h durante a semana através das principais sessões globais.', label:'mercado Forex', search:'forex market overview'},
+  'broker':{book:'Kathy Lien', chapter:'Cap. 4 — Um olhar mais profundo sobre o FX', cite:'Os brokers dão acesso ao mercado e executam ordens; entender o seu papel (e o spread) é o primeiro passo do trader.', label:'brokers', search:'forex broker spread'},
+  'sessões':{book:'Kathy Lien', chapter:'Cap. 7 — Parâmetros de negociação', cite:'A sobreposição das sessões de Londres e Nova Iorque concentra o maior volume e volatilidade do dia.', label:'sessões de mercado', search:'forex london new york session overlap'},
+  'liquidez':{book:'Kathy Lien', chapter:'Cap. 1', cite:'Alta liquidez significa que se pode negociar grandes volumes com pouco impacto no preço — daí spreads menores nos pares principais.', label:'liquidez', search:'market liquidity forex'},
+  'pares':{book:'Kathy Lien', chapter:'Caps. 26–33 — Perfis de moedas', cite:'No par, a primeira moeda é a base e a segunda é a cotada; o preço indica quanto da cotada vale uma unidade da base.', label:'pares de moedas', search:'base quote currency pair'},
+  'correlação':{book:'Kathy Lien', chapter:'Cap. 6 — Correlações de moedas', cite:'Pares como EURUSD e GBPUSD têm correlação positiva; EURUSD e USDCHF tendem a mover-se em sentidos opostos.', label:'correlação de moedas', search:'currency correlation forex'},
+  'fundamentais':{book:'Kathy Lien', chapter:'Caps. 3 e 5 — O que move o mercado', cite:'Decisões de juro, inflação (CPI) e emprego (NFP) estão entre os dados que mais movem uma moeda.', label:'análise fundamental', search:'economic data forex interest rates'},
+  // Nível 2 — Velas
+  'velas':{book:'Al Brooks', chapter:'Cap. 2 — Trend bars, doji bars e climaxes', cite:'O corpo da vela mostra abertura→fechamento; os pavios (tails) marcam os extremos do período.', label:'candlesticks', search:'candlestick anatomy body wick'},
+  'trend bar':{book:'Al Brooks', chapter:'Cap. 2', cite:'Uma trend bar tem corpo grande na direção do movimento, revelando convicção; o doji revela equilíbrio.', label:'trend bars', search:'al brooks trend bar'},
+  'fecho da barra':{book:'Al Brooks', chapter:'Cap. 8 — A importância do fecho da barra', cite:'Brooks enfatiza: um rompimento só é válido quando uma barra FECHA além do nível — pavios que furam e voltam são frequentemente armadilhas.', label:'o fecho da barra', search:'al brooks importance close of bar'},
+  'tipos de gráfico':{book:'Cascalheira', chapter:'Cap. 5 — Tipos de gráfico', cite:'O gráfico de velas mostra os quatro preços (OHLC); o de linha liga apenas os fechos, perdendo detalhe.', label:'tipos de gráfico', search:'candlestick vs line chart'},
+  'timeframe':{book:'Kathy Lien', chapter:'Cap. 8 — Multiple Time Frame Analysis', cite:'Lê-se o timeframe maior para o contexto e o menor para a entrada; é a base da análise multi-timeframe.', label:'timeframes', search:'multiple timeframe analysis trading'},
+  // Nível 3 — Price Action
+  'teoria de dow':{book:'Cascalheira', chapter:'Cap. 4 — Premissas de Dow', cite:'A Teoria de Dow descreve três tendências (primária, secundária, terciária) e parte do princípio de que o preço desconta toda a informação.', label:'Teoria de Dow', search:'dow theory three trends'},
+  'suporte/resistência':{book:'Cascalheira', chapter:'Cap. 6 — Suportes e resistências', cite:'Um suporte rompido pode passar a funcionar como resistência (inversão de polaridade), e vice-versa.', label:'suportes e resistências', search:'support resistance polarity'},
+  'gaps':{book:'Cascalheira', chapter:'Cap. 6 — Gaps', cite:'Há três gaps clássicos: de quebra (breakaway), de fuga (runaway) e de exaustão — este último surge perto do fim do movimento.', label:'gaps', search:'breakaway runaway exhaustion gap'},
+  'pullback':{book:'Al Brooks', chapter:'Caps. 11–12 — Entradas e evolução', cite:'O pullback é um recuo temporário contra a tendência; o mercado expande, recua e continua.', label:'pullbacks', search:'pullback trading continuation'},
+  'reversão':{book:'Al Brooks', chapter:'Cap. 24 — Reversal Day', cite:'Uma vela contrária pode ser apenas pullback; a reversão exige quebra estrutural confirmada pelo fecho.', label:'reversões', search:'trend reversal vs pullback'},
+  'climax':{book:'Al Brooks', chapter:'Cap. 2 — Climaxes', cite:'Um climax é um movimento que foi longe e rápido demais, esgotando um lado e antecedendo pausa ou reversão.', label:'climax', search:'buying selling climax price action'},
+  'consolidação':{book:'Al Brooks', chapter:'Cap. 3 — Trading ranges', cite:'Num range o preço oscila entre teto e chão sem romper; é a forma mais comum de mercado segundo Brooks.', label:'consolidação', search:'trading range consolidation'},
+  // Nível 4 — Estrutura
+  'macro':{book:'Material da mentoria + Brooks Cap. 17', cite:'A macro estrutura (topos mais altos, fundos mais baixos) define a direção; a primeira leitura é sempre o último rompimento da macro.', label:'macroestrutura', search:'market structure swing high low'},
+  'swing':{book:'Al Brooks', chapter:'Cap. 17 — Swing points', cite:'Swing High é um topo relevante e Swing Low um fundo relevante; são os pontos que definem a estrutura.', label:'swing points', search:'swing high swing low'},
+  'bos':{book:'Smart Money Concepts', cite:'BOS (Break of Structure) é o rompimento a favor da tendência — confirma a sua continuação.', label:'Break of Structure', search:'break of structure BOS smart money'},
+  'choch':{book:'Smart Money Concepts', cite:'CHOCH (Change of Character) é o rompimento contra a tendência vigente — o primeiro sinal de reversão.', label:'Change of Character', search:'change of character CHOCH'},
+  'measured move':{book:'Al Brooks', chapter:'Cap. 20 — Two Legs', cite:'Um measured move projeta a segunda perna com tamanho semelhante à primeira, servindo de alvo natural.', label:'measured move', search:'measured move target price action'},
+  'topo/fundo':{book:'Material da mentoria', cite:'Topos e fundos definem a estrutura: a quebra do último fundo numa alta sinaliza a virada.', label:'topos e fundos', search:'higher highs lower lows'},
+  // Nível 5 — SMC
+  'liquidez SMC':{book:'Smart Money Concepts', cite:'A liquidez acumula-se acima de topos e abaixo de fundos (onde há stops); é aí que o dinheiro institucional opera.', label:'liquidez (SMC)', search:'liquidity smart money concepts'},
+  'equal highs':{book:'Smart Money Concepts', cite:'Topos iguais sinalizam liquidez acima, frequentemente varrida (sweep) antes de uma reversão.', label:'equal highs', search:'equal highs liquidity sweep'},
+  'liquidity sweep':{book:'Smart Money Concepts', cite:'O sweep varre os stops além de um nível e reverte; o pavio longo a furar e voltar é a sua assinatura.', label:'liquidity sweep', search:'liquidity sweep stop hunt'},
+  'inducement':{book:'Smart Money Concepts', cite:'O inducement é uma isca: um nível óbvio que atrai entradas, cuja liquidez é tomada antes do movimento real.', label:'inducement', search:'inducement smart money concept'},
+  'order block':{book:'Smart Money Concepts', cite:'O Order Block é a última vela contrária antes de um impulso forte — zona onde instituições deixaram ordens.', label:'order blocks', search:'order block smart money'},
+  'fvg':{book:'Smart Money Concepts', cite:'O Fair Value Gap é o desequilíbrio deixado por um movimento veloz; o preço tende a revisitá-lo.', label:'Fair Value Gap', search:'fair value gap imbalance'},
+  'mitigation':{book:'Smart Money Concepts', cite:'Mitigation é o regresso do preço a um OB/FVG para resolver ordens pendentes antes de continuar.', label:'mitigation', search:'mitigation block smart money'},
+  'breaker':{book:'Smart Money Concepts', cite:'Um Breaker Block é um order block que falhou e foi rompido, passando a atuar no sentido oposto.', label:'breaker blocks', search:'breaker block smart money'},
+  'premium/discount':{book:'Smart Money Concepts', cite:'Acima do 50% é premium (caro); abaixo é discount (barato). Compra-se barato, vende-se caro.', label:'premium e discount', search:'premium discount equilibrium trading'},
+  // Nível 6 — Padrões
+  'OCO':{book:'Cascalheira', chapter:'Cap. 7 — Ombro-Cabeça-Ombro', cite:'O OCO de topo (três picos, cabeça ao centro) é padrão de reversão, confirmado ao quebrar a linha de pescoço.', label:'Ombro-Cabeça-Ombro', search:'head and shoulders pattern'},
+  'topo duplo':{book:'Cascalheira', chapter:'Cap. 7 — Topo Duplo "M"', cite:'O Topo Duplo forma um "M": dois topos no mesmo nível e quebra do vale confirmam a reversão de baixa.', label:'topo duplo', search:'double top pattern M'},
+  'fundo duplo':{book:'Cascalheira', chapter:'Cap. 7 — Duplo Fundo "W"', cite:'O Fundo Duplo forma um "W": dois fundos iguais e quebra do topo confirmam a reversão de alta.', label:'fundo duplo', search:'double bottom pattern W'},
+  'signal bar':{book:'Al Brooks', chapter:'Cap. 4 — Signal bars e entry bars', cite:'A signal bar prepara o sinal; a entrada ocorre na entry bar, quando o preço rompe o extremo da signal bar.', label:'signal bars', search:'al brooks signal bar entry bar'},
+  'reversal bar':{book:'Al Brooks', chapter:'Cap. 5 — Reversal bars', cite:'Uma bull reversal bar tem pavio inferior longo e fecho perto do topo — rejeição de preços baixos no contexto certo.', label:'reversal bars', search:'al brooks reversal bar'},
+  'second entry':{book:'Al Brooks', chapter:'Cap. 10 — Second Entries', cite:'A primeira tentativa frequentemente falha; a segunda entrada, após a falha, é estatisticamente mais fiável.', label:'second entry', search:'al brooks second entry'},
+  'spike and channel':{book:'Al Brooks', chapter:'Cap. 21 — Spike and Channel Trend', cite:'O spike é o impulso inicial veloz; o channel é a subida mais lenta que se segue — juntos formam o padrão de tendência.', label:'spike and channel', search:'spike and channel trend brooks'},
+  'inside bar':{book:'Al Brooks', chapter:'Cap. 12', cite:'A inside bar (vela dentro da anterior) indica compressão e costuma anteceder um rompimento.', label:'inside bar', search:'inside bar breakout'},
+  // Nível 7 — Contexto
+  'multi-timeframe':{book:'Kathy Lien', chapter:'Cap. 8 — Multiple Time Frame Analysis', cite:'Operar contra o timeframe maior é contratendência: risco maior e probabilidade menor.', label:'multi-timeframe', search:'multiple timeframe analysis'},
+  'narrativa':{book:'Al Brooks', chapter:'transversal', cite:'A narrativa junta estrutura, liquidez e contexto numa história coerente do que o preço quer fazer.', label:'narrativa de mercado', search:'market narrative price action'},
+  'direcionalidade':{book:'Al Brooks', chapter:'Glossário — always in', cite:'"Always in long" significa que a direção dominante é de alta: se tivesses de ter posição, estarias comprado.', label:'direcionalidade', search:'al brooks always in'},
+  'alinhamento':{book:'Kathy Lien', chapter:'Cap. 8', cite:'A confluência de vários timeframes na mesma direção é o que aumenta a probabilidade de um cenário.', label:'alinhamento de estruturas', search:'timeframe confluence trading'},
+  'contexto institucional':{book:'Smart Money Concepts', cite:'Ordens institucionais gigantes só se preenchem onde há liquidez — daí caçarem zonas de stops.', label:'contexto institucional', search:'institutional order flow liquidity'},
+  // Nível 8 — Execução
+  'entrada':{book:'Al Brooks', chapter:'Caps. 4 e 10', cite:'Uma boa entrada combina a zona (onde) com o gatilho de confirmação (quando).', label:'entradas', search:'trade entry trigger confirmation'},
+  'confirmação':{book:'Al Brooks', chapter:'Cap. 8', cite:'Esperar confirmação filtra falsos sinais, mas piora o preço de entrada — é preciso equilíbrio.', label:'confirmação', search:'trade entry confirmation'},
+  'trade management':{book:'Kathy Lien', chapter:'Cap. 7', cite:'Mover o stop para breakeven protege o capital depois de o trade andar a favor.', label:'gestão da posição', search:'trade management breakeven stop'},
+  'parcial':{book:'Kathy Lien', chapter:'Cap. 7', cite:'Realizar parciais garante lucro no primeiro alvo e deixa o resto correr para alvos maiores.', label:'gestão parcial', search:'partial profit taking trading'},
+  // Nível 9 — Risco
+  'stop loss':{book:'Kathy Lien', chapter:'Cap. 7 — Parâmetros de negociação', cite:'O Stop Loss define antes quanto se aceita perder se a leitura falhar — é o seguro do trade.', label:'stop loss', search:'stop loss risk management'},
+  'risk reward':{book:'Kathy Lien', chapter:'Cap. 7', cite:'Com R:R de 1:3, pode-se errar dois em cada três trades e ainda ficar positivo.', label:'risk:reward', search:'risk reward ratio trading'},
+  'position sizing':{book:'Kathy Lien', chapter:'Cap. 7', cite:'O tamanho da posição calcula-se a partir do risco em % e da distância ao stop — risco primeiro, lote depois.', label:'position sizing', search:'position sizing forex risk'},
+  'drawdown':{book:'Kathy Lien', chapter:'Cap. 7', cite:'Drawdown é a queda do capital desde o pico; controlá-lo é o que mantém um trader vivo.', label:'drawdown', search:'drawdown trading account'},
+  'expectativa':{book:'Al Brooks', chapter:'Glossário — trader\'s equation', cite:'A expectativa combina taxa de acerto e R:R: um sistema pode acertar pouco e ainda ser lucrativo.', label:'expectativa matemática', search:'trader equation expectancy'},
+  'consistência':{book:'boas práticas', cite:'A vantagem estatística só aparece numa amostra grande com regras fixas — mudar tudo a cada trade impede-a.', label:'consistência', search:'trading consistency statistical edge'},
+  // Nível 10 — Psicologia
+  'fomo':{book:'Psicologia do trading', cite:'FOMO (Fear Of Missing Out) leva a entradas atrasadas e sem plano, frequentemente no pior ponto.', label:'FOMO', search:'fomo trading psychology'},
+  'revenge':{book:'Psicologia do trading', cite:'Revenge trading — operar por raiva para recuperar perdas — é a forma mais rápida de destruir uma conta.', label:'revenge trading', search:'revenge trading psychology'},
+  'disciplina':{book:'Psicologia do trading', cite:'Disciplina é executar o plano definido a frio, mesmo sob medo ou ganância.', label:'disciplina', search:'trading discipline plan'},
+  'overtrading':{book:'Psicologia do trading', cite:'Overtrading é operar em excesso sem setup válido — drena a conta com custos e más entradas.', label:'overtrading', search:'overtrading trading'},
+  'backtesting':{book:'Desenvolvimento profissional', cite:'Backtesting aplica as regras ao histórico para medir a vantagem antes de arriscar dinheiro real.', label:'backtesting', search:'backtesting trading strategy'},
+  'journaling':{book:'Desenvolvimento profissional', cite:'O diário de trades revela padrões recorrentes de acerto e erro — é como a experiência vira melhoria.', label:'journaling', search:'trading journal journaling'},
+  'plano':{book:'Desenvolvimento profissional', cite:'Um plano de trading define setup, risco por trade e regras de entrada/saída — tira a emoção da decisão.', label:'plano de trading', search:'trading plan rules'},
+  // Conceitos de velas específicas (Brooks Cap. 2)
+  'rejeição':{book:'Al Brooks', chapter:'Cap. 2', cite:'Uma vela de rejeição tem pavio longo: o preço foi a um extremo e foi devolvido — sinal de que esse lado falhou.', label:'velas de rejeição', search:'rejection candle pin bar'},
+  'indecisão':{book:'Al Brooks', chapter:'Cap. 2 — Doji bars', cite:'O doji tem corpo minúsculo e pavios dos dois lados: compradores e vendedores empataram no período.', label:'doji / indecisão', search:'doji candle indecision'},
+  'impulso':{book:'Al Brooks', chapter:'Cap. 2 — Trend bars', cite:'Uma vela de impulso (trend bar) tem corpo grande e pavios curtos: um lado dominou e costuma ser o agente de rompimentos.', label:'velas de impulso', search:'trend bar momentum candle'},
+  'tendência':{book:'Teoria de Dow + mentoria', cite:'A tendência define-se pelo último rompimento: rompe topos = alta; rompe fundos = baixa.', label:'tendência', search:'trend higher highs lower lows'},
+  // Estudos de caso e simulações (aplicação prática)
+  'caso ouro':{book:'Estudo de caso · XAUUSD', cite:'Aplicação prática: lê-se a macro primeiro, identifica-se o rompimento e procura-se a entrada a favor da tendência numa retração.', label:'leitura de gráfico (ouro)', search:'gold XAUUSD price action analysis'},
+  'caso reversão':{book:'Estudo de caso · reversão SMC', cite:'Sequência institucional clássica: sweep da liquidez → CHOCH → nova tendência.', label:'leitura de reversão', search:'liquidity sweep choch reversal'},
+  'caso índice':{book:'Cascalheira · estudo de caso', cite:'A dissertação aplica padrões clássicos (OCO, gaps) aos índices europeus reais (DAX, CAC, IBEX, FTSE).', label:'leitura de índices', search:'head and shoulders index analysis'},
+  'caso processo':{book:'Processo de análise', cite:'O fluxo profissional: direção (macro) → liquidez/zonas → gatilho de entrada → gestão de risco.', label:'processo de análise', search:'top down trading analysis process'},
+  'sim':{book:'Simulação prática', cite:'Simulações treinam a decisão em cenários reais: identificar padrão, zona e direção antes de agir.', label:'simulação de leitura', search:'trading simulation chart reading'},
+  'prova':{book:'Avaliação cumulativa', cite:'A prova final integra tudo: estrutura, liquidez, padrões e gestão de risco numa só decisão.', label:'avaliação final', search:'price action trading exam'},
+  // Capítulo especial — rompimento da macro
+  'rompimento-fecho':{book:'Síntese de fontes modernas de Price Action / SMC', cite:'Um rompimento de estrutura só é válido quando o CORPO da vela fecha além do swing point — um pavio que fura e volta é apenas uma caça a stops (liquidity sweep). O fecho mostra "aceitação" do novo preço.', label:'o fecho que confirma o rompimento', search:'break of structure body close confirmation'},
+  'rompimento-swing':{book:'Smart Money Concepts', cite:'Marca sempre o ÚLTIMO swing relevante (o mais recente), não os antigos. Um swing high torna-se "protegido" quando o preço faz um fundo mais baixo depois dele.', label:'o último swing a romper', search:'protected swing high low identify'},
+  'agente':{book:'Price Action — vela de displacement', cite:'O "agente" do rompimento é a vela de displacement: grande, unilateral, cujo corpo fecha decisivamente além do nível. Mostra que entrou força institucional e que o controlo mudou de mãos.', label:'a vela-agente (displacement)', search:'displacement candle order flow break of structure'},
+  'sweep-vs-bos':{book:'Price Action / SMC — armadilhas', cite:'Sweep: o pavio fura o nível mas o corpo fecha do lado de cá, e o preço reverte (caça a stops). Rompimento: o corpo fecha além do nível e o preço continua. A diferença está no fecho.', label:'sweep vs. rompimento', search:'liquidity sweep vs break of structure wick body'},
+  'rompimento-processo':{book:'Método mecânico de leitura', cite:'Processo à prova de erro: (1) marca o último swing, (2) espera o fecho além dele, (3) confirma a vela-agente. Sem adivinhação, sem reagir ao pavio.', label:'o processo de identificação', search:'how to identify break of structure step by step'}
+};
+function level(){ return Math.min(TITLES.length, Math.floor(state.xp/150)+1); }
+function earnedBadges(){ return BADGES.filter(b=>b.cond(state)); }
+
+/* --- Revisão espaçada: cada conceito errado entra na fila com data de retorno --- */
+function scheduleReview(concept, ok){
+  const r = state.review[concept] || {ease:1, next:0, seen:0};
+  r.seen++;
+  if(ok){ r.ease = Math.min(5, r.ease+1); }      // acertou: espaça mais
+  else  { r.ease = 1; }                            // errou: volta cedo
+  const days = [0,1,2,4,7][Math.min(4, r.ease-1)];
+  r.next = Date.now() + days*86400000;
+  if(ok && r.ease>=5) delete state.review[concept]; // dominado: sai da fila
+  else state.review[concept] = r;
+}
+function dueConcepts(){
+  const now = Date.now();
+  return Object.entries(state.review).filter(([c,r])=>r.next<=now).map(([c])=>c);
+}
+
+const STORAGE_KEY = 'chartmaster-state-v1';
+
+async function persist(){
+  const payload = JSON.stringify(state);
+  // 1) localStorage — funciona em qualquer browser, sobrevive a fechar/reabrir
+  try{ localStorage.setItem(STORAGE_KEY, payload); }catch(e){}
+  // 2) window.storage — reforço no ambiente de artefactos (se existir)
+  try{ if(window.storage && window.storage.set) await window.storage.set('cm-state', payload); }catch(e){}
+}
+
+async function restore(){
+  let loaded=null;
+  // 1) tentar localStorage primeiro
+  try{ const v=localStorage.getItem(STORAGE_KEY); if(v) loaded=JSON.parse(v); }catch(e){}
+  // 2) se não houver, tentar window.storage e migrar para localStorage
+  if(!loaded){
+    try{
+      if(window.storage && window.storage.get){
+        const r=await window.storage.get('cm-state');
+        if(r && r.value){ loaded=JSON.parse(r.value); }
+      }
+    }catch(e){}
+  }
+  if(loaded) state = Object.assign(state, loaded);
+
+  const today = dayStr();
+  if(state.lastDay !== today){
+    const diff = (new Date(today) - new Date(state.lastDay)) / 86400000;
+    state.streak = diff === 1 ? state.streak+1 : 1;
+    state.lastDay = today;
+  }
+  if(state.missionDay !== today){ state.missionDay = today; state.missionDone = false; }
+  persist();
+}
+
+/* --- Exportar / importar progresso (para mudar de dispositivo sem servidor) --- */
+function exportProgress(){
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+  return code;
+}
+function importProgress(code){
+  try{
+    const obj = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if(!obj || typeof obj!=='object') throw 0;
+    state = Object.assign({xp:0,streak:1,lastDay:dayStr(),done:{},attempts:[],perfects:0,
+      review:{},reviewsDone:0,missionsDone:0,missionDay:'',missionDone:false,inProgress:null}, obj);
+    persist();
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ============================================================
+   CHART RENDERER
+   ============================================================ */
+const cv = document.getElementById('chart');
+const ctx = cv.getContext('2d');
+const PAD = {t:16, r:56, b:12, l:8};
+let cur=null, pMin=0, pMax=1, W=0, H=0;
+let userMark=null, revealQ=null, revealAnim=0;
+let animUpTo=-1;          // -1 = mostrar todas; >=0 = revelar até este índice (animação)
+let animTimer=null;
+
+function setScenario(key){
+  cur = SCENARIOS[key];
+  pMin = Math.min(...cur.candles.map(k=>k.l));
+  pMax = Math.max(...cur.candles.map(k=>k.h));
+  const pad=(pMax-pMin)*0.06; pMin-=pad; pMax+=pad;
+  document.getElementById('chartSym').textContent = cur.sym;
+  const px = document.getElementById('chartPx');
+  px.textContent = cur.px; px.style.color = cur.pxColor;
+}
+function resize(){
+  if(!cur) return;
+  const dpr = window.devicePixelRatio||1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  if(W===0) return;
+  cv.width=W*dpr; cv.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  draw();
+}
+const x = i => PAD.l + (i+0.5)*(W-PAD.l-PAD.r)/cur.candles.length;
+const y = p => PAD.t + (pMax-p)*(H-PAD.t-PAD.b)/(pMax-pMin);
+const iAt = px => Math.round((px-PAD.l)/((W-PAD.l-PAD.r)/cur.candles.length) - 0.5);
+const pAt = py => pMax - (py-PAD.t)*(pMax-pMin)/(H-PAD.t-PAD.b);
+
+function fmt(p){ return p>=1000 ? Math.round(p).toLocaleString('pt') : (Math.round(p*10)/10); }
+
+function draw(){
+  if(!cur||!W) return;
+  ctx.clearRect(0,0,W,H);
+  const mono = getComputedStyle(document.documentElement).getPropertyValue('--mono');
+
+  // grade
+  const range=pMax-pMin, rawStep=range/4;
+  const mag=Math.pow(10,Math.floor(Math.log10(rawStep)));
+  const step=Math.ceil(rawStep/mag)*mag;
+  ctx.font='10px '+mono; ctx.textAlign='left'; ctx.textBaseline='middle';
+  for(let p=Math.ceil(pMin/step)*step; p<pMax; p+=step){
+    ctx.strokeStyle='rgba(36,48,73,.55)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PAD.l,y(p)); ctx.lineTo(W-PAD.r,y(p)); ctx.stroke();
+    ctx.fillStyle='#8B94AB'; ctx.fillText(fmt(p), W-PAD.r+8, y(p));
+  }
+
+  // reveal (zona correta + anotações)
+  if(revealQ && revealQ.zone){
+    const z=revealQ.zone;
+    const zx=x(z.i1)-7, zw=x(z.i2)-x(z.i1)+14;
+    const zy=y(z.p2), zh=y(z.p1)-y(z.p2);
+    ctx.fillStyle=`rgba(232,179,61,${0.10+0.08*Math.sin(revealAnim)})`;
+    ctx.fillRect(zx,zy,zw,zh);
+    ctx.strokeStyle='rgba(232,179,61,.85)'; ctx.setLineDash([5,4]); ctx.lineWidth=1.5;
+    ctx.strokeRect(zx,zy,zw,zh); ctx.setLineDash([]);
+    const r=revealQ.reveal||{};
+    if(r.hline){
+      ctx.strokeStyle='rgba(246,70,93,.9)'; ctx.setLineDash([6,5]); ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x(r.hline.i1)-8,y(r.hline.price)); ctx.lineTo(x(r.hline.i2),y(r.hline.price)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#F6465D'; ctx.font='bold 10px Inter,sans-serif'; ctx.textAlign='left';
+      ctx.fillText(r.hline.label, x(r.hline.i1)-8, y(r.hline.price)-8);
+    }
+    if(r.label){
+      ctx.fillStyle='#E8B33D'; ctx.font='bold 11px Inter,sans-serif'; ctx.textAlign='center';
+      ctx.fillText(r.label, zx+zw/2, Math.min(H-8, zy+zh+14));
+    }
+  }
+
+  // velas (respeitando a animação progressiva)
+  const bw=Math.max(3,(W-PAD.l-PAD.r)/cur.candles.length*0.62);
+  const lastVisible = animUpTo<0 ? cur.candles.length-1 : animUpTo;
+  cur.candles.forEach((k,i)=>{
+    if(i>lastVisible) return;                       // ainda não revelada
+    const col = k.c>=k.o ? '#2EBD85' : '#F6465D';
+    const isNewest = (animUpTo>=0 && i===lastVisible);  // vela a "entrar" agora
+    ctx.globalAlpha = isNewest ? 0.6+0.4*Math.abs(Math.sin(revealAnim*1.5)) : 1;
+    ctx.strokeStyle=col; ctx.lineWidth= isNewest?1.6:1;
+    ctx.beginPath(); ctx.moveTo(x(i),y(k.h)); ctx.lineTo(x(i),y(k.l)); ctx.stroke();
+    ctx.fillStyle=col;
+    const top=y(Math.max(k.o,k.c)), bot=y(Math.min(k.o,k.c));
+    ctx.fillRect(x(i)-bw/2, top, bw, Math.max(1.5,bot-top));
+    ctx.globalAlpha=1;
+  });
+
+  // marca do aluno
+  if(userMark){
+    const mx=x(userMark.i), my=y(userMark.price);
+    ctx.beginPath(); ctx.arc(mx,my,9,0,Math.PI*2);
+    ctx.strokeStyle='#E8B33D'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(mx,my,3,0,Math.PI*2); ctx.fillStyle='#E8B33D'; ctx.fill();
+  }
+}
+window.addEventListener('resize', resize);
+
+function startReveal(q){
+  revealQ=q;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ draw(); return; }
+  let t0=null;
+  (function loop(ts){
+    if(!t0)t0=ts;
+    revealAnim=(ts-t0)/400; draw();
+    if(ts-t0<2400) requestAnimationFrame(loop);
+  })(performance.now());
+}
+
+/* Animação progressiva: revela as velas uma a uma (efeito "replay") */
+function playAnim(key){
+  setScenario(key);
+  if(animTimer){ clearInterval(animTimer); animTimer=null; }
+  const n = cur.candles.length;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ animUpTo=-1; requestAnimationFrame(resize); return; }
+  animUpTo=0;
+  requestAnimationFrame(resize);
+  // loop de "respiração" para a vela mais recente
+  let raf=null;
+  (function breathe(ts){ revealAnim=ts/300; if(animUpTo>=0 && animUpTo<n){ draw(); raf=requestAnimationFrame(breathe);} })(0);
+  animTimer=setInterval(()=>{
+    animUpTo++;
+    if(animUpTo>=n-1){
+      animUpTo=n-1;
+      clearInterval(animTimer); animTimer=null;
+      if(raf) cancelAnimationFrame(raf);
+      setTimeout(()=>{ animUpTo=-1; draw(); }, 600); // fixa todas no fim
+    }
+    draw();
+  }, 380);
+}
+
+/* ============================================================
+   LESSON ENGINE
+   ============================================================ */
+const $=id=>document.getElementById(id);
+let curMod=null, qi=0, lessonXp=0, lessonCorrect=0, selected=null, answered=false;
+let lessonKind='module';   // module | review | mission | exam
+
+// Atribuir um ID estável a cada questão (para memória e variação)
+(function tagQuestions(){
+  MODULES.forEach(m=>m.questions.forEach((q,i)=>{ q._qid = m.id+'-'+i; }));
+})();
+
+// Banco global de questões (todas as questões de todos os níveis)
+function allQuestions(){
+  const bank=[];
+  MODULES.forEach(m=>m.questions.forEach(q=>bank.push(q)));
+  return bank;
+}
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function startLesson(mod, kind){
+  curMod=mod; qi=0; lessonXp=0; lessonCorrect=0;
+  lessonKind = kind || 'module';
+  $('lessonTag').innerHTML = `${mod.icon} <b>${mod.title}</b>`;
+  $('result').classList.remove('show');
+  showView('vLesson', true);
+  loadQ();
+}
+
+// Iniciar (ou repetir) um nível. Na repetição, a ordem é baralhada e
+// reforçada com questões de revisão do mesmo nível para variar.
+function startModule(mod){
+  const isRepeat = !!state.done[mod.id];
+  let qs;
+  if(isRepeat){
+    // ordem baralhada; injeta variação trazendo questões do banco do mesmo conceito
+    qs = shuffle(mod.questions);
+  }else{
+    qs = mod.questions.slice();  // 1ª vez: ordem pedagógica original
+  }
+  startLesson({id:mod.id, icon:mod.icon, title:mod.title, questions:qs}, 'module');
+}
+
+// Revisão espaçada: monta uma lição com conceitos vencidos (ou erros recentes)
+function startReview(){
+  let due = dueConcepts();
+  if(!due.length){
+    const wrong = [...new Set(state.attempts.filter(a=>!a.ok).slice(-40).map(a=>a.c))];
+    due = wrong;
+  }
+  const bank = allQuestions().filter(q=>due.includes(q.c));
+  const qs = shuffle(bank).slice(0,8);
+  if(!qs.length){
+    alert('Ainda não há nada para rever — completa algumas lições primeiro! 📈');
+    return;
+  }
+  startLesson({id:'__review', icon:'🔁', title:'Revisão Espaçada', questions:qs}, 'review');
+}
+
+// Missão diária: 5 questões aleatórias do banco (varia a cada dia/abertura)
+function startMission(){
+  const qs = shuffle(allQuestions()).slice(0,5);
+  startLesson({id:'__mission', icon:'📅', title:'Missão Diária', questions:qs}, 'mission');
+}
+
+// Avaliação cumulativa de um nível já desbloqueado (questões baralhadas)
+function startExam(mod){
+  const qs = shuffle(mod.questions).slice(0, Math.min(8, mod.questions.length));
+  startLesson({id:'__exam_'+mod.id, icon:'📝', title:'Avaliação · '+mod.title.replace(/^N\d+ · /,''), questions:qs, examOf:mod.id}, 'exam');
+}
+
+function loadQ(){
+  const q=curMod.questions[qi];
+  answered=false; selected=null; userMark=null; revealQ=null; animUpTo=-1;
+  if(animTimer){ clearInterval(animTimer); animTimer=null; }
+  $('bar').style.width=(qi/curMod.questions.length*100)+'%';
+  $('xpPill').textContent='+'+lessonXp+' XP';
+  $('qText').innerHTML=q.prompt+(q.sub?`<small>${q.sub}</small>`:'');
+  const opts=$('opts'); opts.innerHTML='';
+  $('cta').disabled=true;
+
+  const hasChart = !!(q.scenario || q.anim);
+  $('chartCard').style.display = hasChart?'block':'none';
+  if(q.anim){
+    playAnim(q.anim);                 // animação progressiva (replay)
+  }else if(q.scenario){
+    setScenario(q.scenario);
+    requestAnimationFrame(resize);
+  }
+  cv.classList.toggle('clickable', q.type==='click');
+  $('hint').classList.toggle('show', q.type==='click');
+
+  // ---- Opções embaralhadas (posição da resposta certa é aleatória) ----
+  if(q.options){
+    // Para V/F mantemos a ordem natural; para o resto, baralhamos.
+    const isTF = q.options.length===2 && /verdadeiro/i.test(q.options[0]);
+    let order = q.options.map((_,i)=>i);
+    if(!isTF) order = shuffle(order);
+    q._order = order;                          // guardar para corrigir e persistir
+    q._correctPos = order.indexOf(q.answer);   // nova posição da resposta certa
+    order.forEach((origIdx,pos)=>{
+      const b=document.createElement('button');
+      b.className='opt';
+      b.innerHTML=`<span class="key">${String.fromCharCode(65+pos)}</span><span>${q.options[origIdx]}</span>`;
+      b.dataset.orig=origIdx;
+      b.onclick=()=>{
+        if(answered)return;
+        selected=origIdx;                      // selected guarda o índice ORIGINAL
+        [...opts.children].forEach(c=>c.classList.toggle('selected', +c.dataset.orig===origIdx));
+        $('cta').disabled=false;
+      };
+      opts.appendChild(b);
+    });
+  }
+  saveLessonProgress();
+}
+
+cv.addEventListener('pointerdown', e=>{
+  if(!curMod)return;
+  const q=curMod.questions[qi];
+  if(q.type!=='click'||answered)return;
+  const r=cv.getBoundingClientRect();
+  const i=iAt(e.clientX-r.left), price=pAt(e.clientY-r.top);
+  if(i<0||i>=cur.candles.length)return;
+  userMark={i,price};
+  $('hint').classList.remove('show');
+  $('cta').disabled=false;
+  draw();
+});
+
+function grade(q){
+  if(q.type==='click'){
+    const z=q.zone;
+    return userMark.i>=z.i1 && userMark.i<=z.i2 && userMark.price>=z.p1 && userMark.price<=z.p2;
+  }
+  return selected===q.answer;
+}
+
+$('cta').onclick=()=>{
+  if(answered||!curMod)return;
+  answered=true;
+  const q=curMod.questions[qi];
+  const ok=grade(q);
+  if(ok){lessonCorrect++; lessonXp+=10; $('xpPill').textContent='+'+lessonXp+' XP';}
+  state.attempts.push({c:q.c, ok});
+  if(state.attempts.length>600) state.attempts=state.attempts.slice(-600);
+  scheduleReview(q.c, ok);
+  if(lessonKind==='review' && ok) state.reviewsDone=(state.reviewsDone||0)+1;
+
+  if(q.options){
+    [...$('opts').children].forEach(c=>{
+      c.disabled=true;
+      const orig=+c.dataset.orig;
+      if(orig===q.answer)c.classList.add('correct');           // a certa, onde quer que tenha caído
+      else if(orig===selected&&!ok)c.classList.add('wrong');
+    });
+  }
+  if(q.type==='click') startReveal(q);
+
+  const inner=$('sheetInner');
+  inner.className='sheet-inner '+(ok?'ok':'bad');
+  $('sBadge').textContent=ok?'✓':'✕';
+  $('sTitle').textContent=ok?'Correto!':'Ainda não…';
+  $('sBody').innerHTML=ok?q.ok:q.bad;
+  $('sXp').textContent=ok?'+10 XP':'+0 XP · este conceito volta na tua revisão';
+
+  // ---- Botão "Aprofundar" com fonte/citação ----
+  buildDeepen(q);
+
+  $('sNext').textContent = qi<curMod.questions.length-1?'Continuar':'Ver resultado';
+  setTimeout(()=>$('sheet').classList.add('show'), q.type==='click'?850:330);
+};
+
+/* Constrói a secção "Aprofundar" do feedback com base na fonte do conceito */
+function buildDeepen(q){
+  const box=$('deepen'); if(!box) return;
+  const src = SOURCES[q.c] || SOURCES['_default'];
+  const query = encodeURIComponent((src.search||q.c)+' trading price action');
+  box.innerHTML = `
+    <button class="deepen-toggle" id="deepBtn">📚 Aprofundar este tema</button>
+    <div class="deepen-body" id="deepBody" hidden>
+      ${src.cite?`<p class="cite">📖 <b>${src.book}</b>${src.chapter?' · '+src.chapter:''}<br><span>${src.cite}</span></p>`:''}
+      <a class="deep-link" href="https://www.google.com/search?q=${query}" target="_blank" rel="noopener">🔎 Pesquisar mais sobre "${src.label||q.c}"</a>
+    </div>`;
+  const btn=$('deepBtn'), body=$('deepBody');
+  if(btn) btn.onclick=()=>{ body.hidden=!body.hidden; btn.classList.toggle('open', !body.hidden); };
+}
+
+$('sNext').onclick=()=>{
+  $('sheet').classList.remove('show');
+  revealQ=null;
+  qi++;
+  if(qi<curMod.questions.length){ saveLessonProgress(); setTimeout(loadQ,300); }
+  else{ clearLessonProgress(); $('bar').style.width='100%'; setTimeout(finishLesson,350); }
+};
+
+$('quitBtn').onclick=()=>{ $('sheet').classList.remove('show'); saveLessonProgress(); showView('vHome'); };
+
+/* ---- Memória de progresso a meio de uma lição ---- */
+function saveLessonProgress(){
+  if(!curMod || lessonKind!=='module') return;   // só guardamos lições de nível
+  state.inProgress = {
+    modId: curMod.id, qi, lessonXp, lessonCorrect,
+    order: curMod.questions.map(q=>q._qid)        // ordem exata das questões desta sessão
+  };
+  persist();
+}
+function clearLessonProgress(){
+  if(state.inProgress){ delete state.inProgress; persist(); }
+}
+function resumeLesson(){
+  const ip = state.inProgress;
+  if(!ip) return false;
+  const mod = MODULES.find(m=>m.id===ip.modId);
+  if(!mod){ clearLessonProgress(); return false; }
+  // reconstruir a mesma ordem de questões guardada
+  let qs;
+  if(ip.order && ip.order.every(id=>id!=null)){
+    const byId={}; mod.questions.forEach(q=>byId[q._qid]=q);
+    qs = ip.order.map(id=>byId[id]).filter(Boolean);
+  }
+  if(!qs || qs.length!==mod.questions.length) qs = mod.questions; // fallback
+  curMod = {id:mod.id, icon:mod.icon, title:mod.title, questions:qs};
+  qi = Math.min(ip.qi||0, qs.length-1);
+  lessonXp = ip.lessonXp||0; lessonCorrect = ip.lessonCorrect||0;
+  lessonKind='module';
+  $('lessonTag').innerHTML = `${mod.icon} <b>${mod.title}</b>`;
+  $('result').classList.remove('show');
+  showView('vLesson', true);
+  loadQ();
+  return true;
+}
+
+function finishLesson(){
+  const total=curMod.questions.length;
+  const acc=Math.round(lessonCorrect/total*100);
+  const passed=acc>=70;
+  const before=earnedBadges().map(b=>b.id);
+
+  state.xp+=lessonXp;
+  if(acc===100 && lessonKind==='module') state.perfects++;
+
+  if(lessonKind==='module'){
+    const prev=state.done[curMod.id];
+    if(passed && (!prev || acc>prev.acc)) state.done[curMod.id]={acc};
+  } else if(lessonKind==='mission' && !state.missionDone){
+    state.missionDone=true; state.missionsDone=(state.missionsDone||0)+1;
+  }
+  persist();
+
+  const after=earnedBadges();
+  const fresh=after.filter(b=>!before.includes(b.id));
+
+  $('result').classList.add('show');
+  let title, msg;
+  if(lessonKind==='module'){
+    title = passed ? 'Nível dominado! 🏅' : 'Quase lá! 💪';
+    const nextExists = MODULES[MODULES.findIndex(m=>m.id===curMod.id)+1];
+    msg = passed
+      ? `Concluíste <b style="color:var(--text)">${curMod.title}</b>${state.done[curMod.id]&&nextExists?' — o próximo nível foi desbloqueado':''}.`
+      : `Precisas de pelo menos <b style="color:var(--text)">70%</b> para desbloquear o próximo nível. Revê e tenta de novo!`;
+  } else if(lessonKind==='review'){
+    title = '🔁 Revisão concluída!';
+    msg = `Reforçaste conceitos que tinhas errado. Acertar agora afasta-os na fila de revisão — errar traz-nos de volta amanhã.`;
+  } else if(lessonKind==='mission'){
+    title = '📅 Missão diária feita!';
+    msg = `Mantém a tua sequência viva: 🔥 <b style="color:var(--text)">${state.streak}</b> ${state.streak===1?'dia':'dias'}. Volta amanhã para uma nova missão.`;
+  } else {
+    title = passed ? '📝 Avaliação passada!' : '📝 Avaliação não passada';
+    msg = passed ? `Mostraste domínio cumulativo deste nível. Bom trabalho!` : `Não atingiste 70%. Revê o nível e repete a avaliação quando estiveres pronto.`;
+  }
+  $('rTitle').textContent = title;
+  $('rMsg').innerHTML = msg;
+  $('rXp').textContent=lessonXp;
+  $('rAcc').textContent=lessonCorrect+'/'+total;
+  $('ringVal').style.color = passed?'var(--green)':'var(--red)';
+  const ring=$('ringFg');
+  ring.style.stroke = passed?'#2EBD85':'#F6465D';
+  ring.style.transition='none'; ring.style.strokeDashoffset=377;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    ring.style.transition='stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)';
+    ring.style.strokeDashoffset=377-(377*acc/100);
+  }));
+  let v=0; const t=setInterval(()=>{
+    v+=4; if(v>=acc){v=acc;clearInterval(t);}
+    $('ringVal').textContent=v+'%';
+  },25);
+
+  const nb=$('newBadge');
+  if(fresh.length){ nb.style.display='block'; nb.textContent='🎉 Nova medalha: '+fresh.map(b=>b.icon+' '+b.name).join(' · '); }
+  else nb.style.display='none';
+}
+$('rBack').onclick=()=>{ showView('vHome'); };
+
+/* ============================================================
+   HOME / TRILHA
+   ============================================================ */
+function renderHome(){
+  $('hStreak').textContent=state.streak;
+  $('hXp').textContent=state.xp+' XP';
+  const lvl=level();
+  $('hLvl').textContent=lvl;
+  $('hTitle').textContent=TITLES[lvl-1];
+  $('hLvlBar').style.width=((state.xp%150)/150*100)+'%';
+
+  const track=$('track'); track.innerHTML='';
+
+  // --- Cartão "Continuar lição" (memória a meio) ---
+  if(state.inProgress){
+    const ip=state.inProgress;
+    const mod=MODULES.find(m=>m.id===ip.modId);
+    if(mod){
+      const total=mod.questions.length;
+      const cont=document.createElement('button');
+      cont.className='resume';
+      cont.innerHTML=`
+        <div class="ri">▶️</div>
+        <div class="rinfo"><h4>Continuar onde paraste</h4>
+        <p>${mod.title} · questão ${Math.min((ip.qi||0)+1,total)} de ${total}</p>
+        <div class="rbar"><div style="width:${(ip.qi||0)/total*100}%"></div></div></div>`;
+      cont.onclick=()=>resumeLesson();
+      track.appendChild(cont);
+    }
+  }
+
+  // --- Cartões de prática diária (missão + revisão) ---
+  const due = dueConcepts().length;
+  const daily=document.createElement('div');
+  daily.className='daily-row';
+  daily.innerHTML=`
+    <button class="daily ${state.missionDone?'done':''}" id="missionCard">
+      <div class="di">📅</div>
+      <div><h4>Missão diária</h4><p>${state.missionDone?'Concluída hoje ✓':'5 questões · +50 XP'}</p></div>
+    </button>
+    <button class="daily" id="reviewCard">
+      <div class="di">🔁</div>
+      <div><h4>Revisão</h4><p>${due?due+' conceito'+(due>1?'s':'')+' a rever':'Reforçar erros'}</p></div>
+    </button>`;
+  track.appendChild(daily);
+
+  // --- Trilha de níveis ---
+  let unlockedUpTo=0;
+  MODULES.forEach((m,i)=>{ if(state.done[m.id]) unlockedUpTo=Math.max(unlockedUpTo,i+1); });
+
+  MODULES.forEach((m,i)=>{
+    const done=state.done[m.id];
+    const locked=i>unlockedUpTo;
+    const b=document.createElement('button');
+    b.className='mod '+(done?'done':locked?'locked':'avail');
+    b.innerHTML=`
+      <div class="ico">${done?'✅':locked?'🔒':m.icon}</div>
+      <div class="info"><h3>${m.title}</h3><p>${m.desc}</p>${done?'<span class="exam-link">📝 refazer avaliação</span>':''}</div>
+      <div class="st">${done?done.acc+'%':locked?'bloqueado':'começar →'}</div>`;
+    if(!locked){
+      b.onclick=(e)=>{
+        if(e.target.classList.contains('exam-link')){ startExam(m); }
+        else startModule(m);
+      };
+    }
+    track.appendChild(b);
+  });
+
+  $('missionCard').onclick=()=>{ if(!state.missionDone) startMission(); };
+  $('reviewCard').onclick=startReview;
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function renderDash(){
+  $('dXpChip').textContent=state.xp+' XP';
+  const d=$('dash');
+  const total=state.attempts.length;
+  const okN=state.attempts.filter(a=>a.ok).length;
+  const acc=total?Math.round(okN/total*100):0;
+  const doneN=Object.keys(state.done).length;
+
+  // por conceito
+  const byC={};
+  state.attempts.forEach(a=>{
+    byC[a.c]=byC[a.c]||{n:0,ok:0};
+    byC[a.c].n++; if(a.ok)byC[a.c].ok++;
+  });
+  const concepts=Object.entries(byC).sort((a,b)=>b[1].n-a[1].n).slice(0,10);
+
+  const earned=earnedBadges().map(b=>b.id);
+
+  d.innerHTML=`
+    <div class="dgrid">
+      <div class="dcard"><b>${acc}%</b><span>Precisão geral</span></div>
+      <div class="dcard"><b>${doneN}/10</b><span>Módulos dominados</span></div>
+      <div class="dcard"><b>${total}</b><span>Exercícios feitos</span></div>
+      <div class="dcard"><b>🔥 ${state.streak}</b><span>Dias seguidos</span></div>
+    </div>
+    <div class="sect">Domínio por conceito</div>
+    ${concepts.length ? concepts.map(([c,v])=>{
+      const p=Math.round(v.ok/v.n*100);
+      const col=p>=80?'var(--green)':p>=50?'var(--gold)':'var(--red)';
+      return `<div class="cbar"><span class="nm">${c}</span><div class="tr"><div style="width:${p}%;background:${col}"></div></div><span class="pc">${p}%</span></div>`;
+    }).join('') : '<div class="empty">Completa a tua primeira lição para veres o teu domínio por conceito aqui. 📈</div>'}
+    <div class="sect">Medalhas</div>
+    <div class="badges">
+      ${BADGES.map(b=>`<div class="bdg ${earned.includes(b.id)?'earned':''}"><span class="bi">${b.icon}</span><span class="bn">${b.name}</span></div>`).join('')}
+    </div>
+    <div class="sect">Guardar / transferir progresso</div>
+    <div class="sync">
+      <p class="sync-note">O teu progresso fica guardado neste browser automaticamente. Para o levar para <b>outro dispositivo</b>, copia o teu código aqui e cola-o no outro aparelho.</p>
+      <div class="sync-row">
+        <button class="sync-btn" id="btnExport">📤 Copiar o meu código</button>
+        <button class="sync-btn" id="btnImport">📥 Colar código</button>
+      </div>
+      <textarea class="sync-box" id="syncBox" placeholder="O teu código de progresso aparece aqui ao exportar — ou cola aqui um código e toca em Aplicar." spellcheck="false"></textarea>
+      <button class="sync-apply" id="btnApply" hidden>✅ Aplicar código colado</button>
+    </div>`;
+
+  // handlers de sincronização
+  const box=$('syncBox');
+  $('btnExport').onclick=()=>{
+    box.value=exportProgress();
+    box.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    $('btnExport').textContent='✓ Copiado!';
+    setTimeout(()=>$('btnExport').textContent='📤 Copiar o meu código',1800);
+  };
+  $('btnImport').onclick=()=>{ box.value=''; box.placeholder='Cola aqui o código do outro dispositivo…'; box.focus(); $('btnApply').hidden=false; };
+  $('btnApply').onclick=()=>{
+    if(importProgress(box.value)){ alert('Progresso importado com sucesso! 🎉'); renderHome(); renderDash(); }
+    else alert('Código inválido. Verifica se copiaste o código completo.');
+  };
+}
+
+/* ============================================================
+   NAVEGAÇÃO
+   ============================================================ */
+function showView(id, isLesson){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  $(id).classList.add('active');
+  $('nav').style.display = isLesson?'none':'flex';
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===id));
+  if(id==='vHome') renderHome();
+  if(id==='vDash') renderDash();
+}
+document.querySelectorAll('#nav button').forEach(b=>{
+  b.onclick=()=>showView(b.dataset.v);
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function(){
+  await restore();
+  renderHome();
+})();
+</script>
+</body>
+</html>
